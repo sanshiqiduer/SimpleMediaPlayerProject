@@ -1,0 +1,103 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+
+
+    <!-- 整个应用的公用尺寸： -->
+    <!-- 使用该文件时的注意事项： -->
+    <!-- 1、该文件里面的内容不可修改，因为该尺寸属于整个应用公用的，如果修改可能引起其它使用的地方不正常显示-->
+    <!-- 2、该文件里的内容允许新增，如果使用到的尺寸该文件不存在，而且是公用的可以新增  -->
+    <!-- 3、新增属性时应该注意，要同时在values-xlarge中添加对应的属性 -->
+
+
+    <!-- 以sp为单位的尺寸（如字体的尺寸） -->
+    <dimen name="mc_sp_10">10sp</dimen>
+    <dimen name="mc_sp_11">11sp</dimen>
+    <dimen name="mc_sp_12">12sp</dimen>
+    <dimen name="mc_sp_13">13sp</dimen>
+    <dimen name="mc_sp_14">14sp</dimen>
+    <dimen name="mc_sp_15">15sp</dimen>
+    <dimen name="mc_sp_16">16sp</dimen>
+    <dimen name="mc_sp_17">17sp</dimen>
+    <dimen name="mc_sp_18">18sp</dimen>
+    <dimen name="mc_sp_19">19sp</dimen>
+    <dimen name="mc_sp_20">20sp</dimen>
+    <dimen name="mc_sp_21">21sp</dimen>
+    <dimen name="mc_sp_22">22sp</dimen>
+    <dimen name="mc_sp_23">23sp</dimen>
+    <dimen name="mc_sp_24">24sp</dimen>
+    <dimen name="mc_sp_25">25sp</dimen>
+    <dimen name="mc_sp_26">26sp</dimen>
+    <dimen name="mc_sp_27">27sp</dimen>
+    <dimen name="mc_sp_28">28sp</dimen>
+    <dimen name="mc_sp_29">29sp</dimen>
+    <dimen name="mc_sp_30">30sp</dimen>
+    <dimen name="mc_sp_31">31sp</dimen>
+    <dimen name="mc_sp_32">32sp</dimen>
+    <dimen name="mc_sp_33">33sp</dimen>
+    <dimen name="mc_sp_34">34sp</dimen>
+    <dimen name="mc_sp_35">35sp</dimen>
+    <dimen name="mc_sp_36">36sp</dimen>
+    <dimen name="mc_sp_37">37sp</dimen>
+    <dimen name="mc_sp_38">38sp</dimen>
+    <dimen name="mc_sp_39">39sp</dimen>
+    <dimen name="mc_sp_42">42sp</dimen>
+
+
+
+    <!-- 以dp为单位的尺寸（如布局的尺寸 ）-->
+    <dimen name="mc_dp_minus_10">-10dp</dimen>
+    <dimen name="mc_dp_minus_8">-8dp</dimen>
+    <dimen name="mc_dp_minus_3">-3dp</dimen>
+    <dimen name="mc_dp_1">1dp</dimen>
+    <dimen name="mc_dp_2">2dp</dimen>
+    <dimen name="mc_dp_3">3dp</dimen>
+    <dimen name="mc_dp_4">4dp</dimen>
+    <dimen name="mc_dp_5">5dp</dimen>
+    <dimen name="mc_dp_6">6dp</dimen>
+    <dimen name="mc_dp_7">7dp</dimen>
+    <dimen name="mc_dp_8">8dp</dimen>
+    <dimen name="mc_dp_9">9dp</dimen>
+    <dimen name="mc_dp_10">10dp</dimen>
+    <dimen name="mc_dp_12">12dp</dimen>
+    <dimen name="mc_dp_13">13dp</dimen>
+    <dimen name="mc_dp_15">15dp</dimen>
+    <dimen name="mc_dp_16">16dp</dimen>
+    <dimen name="mc_dp_20">20dp</dimen>
+    <dimen name="mc_dp_23">23dp</dimen>
+    <dimen name="mc_dp_25">25dp</dimen>
+    <dimen name="mc_dp_28">28dp</dimen>
+    <dimen name="mc_dp_30">30dp</dimen>
+    <dimen name="mc_dp_35">35dp</dimen>
+    <dimen name="mc_dp_40">40dp</dimen>
+    <dimen name="mc_dp_45">45dp</dimen>
+    <dimen name="mc_dp_50">50dp</dimen>
+    <dimen name="mc_dp_55">55dp</dimen>
+    <dimen name="mc_dp_60">60dp</dimen>
+    <dimen name="mc_dp_65">65dp</dimen>
+    <dimen name="mc_dp_70">70dp</dimen>
+    <dimen name="mc_dp_75">75dp</dimen>
+    <dimen name="mc_dp_80">80dp</dimen>
+    <dimen name="mc_dp_90">90dp</dimen>
+    <dimen name="mc_dp_95">95dp</dimen>
+    <dimen name="mc_dp_100">100dp</dimen>
+    <dimen name="mc_dp_110">110dp</dimen>
+    <dimen name="mc_dp_120">120dp</dimen>
+    <dimen name="mc_dp_135">135dp</dimen>
+    <dimen name="mc_dp_140">140dp</dimen>
+    <dimen name="mc_dp_150">150dp</dimen>
+    <dimen name="mc_dp_160">160dp</dimen>
+    <dimen name="mc_dp_170">170dp</dimen>
+    <dimen name="mc_dp_180">180dp</dimen>
+    <dimen name="mc_dp_200">200dp</dimen>
+    <dimen name="mc_dp_220">220dp</dimen>
+    <dimen name="mc_dp_240">240dp</dimen>
+    <dimen name="mc_dp_280">280dp</dimen>
+    <dimen name="mc_dp_300">300dp</dimen>
+    <dimen name="mc_dp_350">350dp</dimen>
+    <dimen name="mc_dp_400">400dp</dimen>
+
+
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
+    <TextView
+        android:id="@+id/empty_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:drawablePadding="@dimen/mc_dp_5"
+        android:drawableTop="@drawable/ems_index_empty_icon"
+        android:gravity="center"
+        android:text="@string/empty_text"
+        android:textColor="@color/gray"
+        android:textSize="@dimen/mc_sp_20" />
+
+    <Button
+        android:id="@+id/launch_download"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/empty_text"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="@dimen/mc_dp_20"
+        android:textSize="@dimen/mc_sp_18"
+        android:text="启动课件下载器"></Button>
+
+</RelativeLayout>
