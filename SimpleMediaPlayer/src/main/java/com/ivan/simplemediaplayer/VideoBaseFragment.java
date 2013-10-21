@@ -33,7 +33,7 @@ public abstract class VideoBaseFragment extends Fragment implements AdapterView.
 
     protected String path = "";
 
-    public VideoBaseFragment(String bathPath) {
+    protected VideoBaseFragment(String bathPath) {
         this.bathPath = bathPath;
     }
 
@@ -58,7 +58,7 @@ public abstract class VideoBaseFragment extends Fragment implements AdapterView.
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         Media media = playList.get(position);
-        callback.onMediaItemClick(media, position, bathPath, path);
+        callback.onMediaItemClick(media, position,bathPath, path);
     }
 
     @Override

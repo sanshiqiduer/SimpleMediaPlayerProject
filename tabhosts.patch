@@ -1,0 +1,1098 @@
+Index: SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/MainActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/MainActivity.java	(revision )
++++ SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/MainActivity.java	(revision )
+@@ -3,13 +3,12 @@
+ import android.content.Intent;
+ import android.content.SharedPreferences;
+ import android.os.Bundle;
+-import android.os.Environment;
+ import android.support.v4.app.Fragment;
++import android.support.v4.app.FragmentActivity;
+ import android.support.v4.app.FragmentManager;
+ import android.support.v4.app.FragmentTransaction;
+ import android.support.v7.app.ActionBar;
+ import android.support.v7.app.ActionBarActivity;
+-import android.util.Log;
+ import android.view.LayoutInflater;
+ import android.view.Menu;
+ import android.view.MenuInflater;
+@@ -29,11 +28,8 @@
+ 
+     public static final String SHOW_GRID = "showGrid";
+ 
+-    private static final String GRID_FRAGMENT_TAG = "gridFragmentTag";
+-    private static final String LIST_FRAGMENT_TAG = "listFragmentTag";
++    private static final String FRAGMENT_TAG = "fragmentTag";
+ 
+-    private View gridView;
+-    private View listView;
+     private boolean showGridView;
+     //????????????
+     private SharedPreferences preferences;
+@@ -41,62 +37,46 @@
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+-        setContentView(R.layout.main);
+ 
+-        gridView = findViewById(R.id.grid_container);
+-        listView = findViewById(R.id.list_container);
+-
+         preferences = getPreferences(MODE_PRIVATE);
+         showGridView = preferences.getBoolean(SHOW_GRID, true);
+ 
+         final ActionBar actionBar = getSupportActionBar();
++        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+         actionBar.setTitle(R.string.home_title_text);
++        actionBar.setDisplayOptions(0, ActionBar.DISPLAY_USE_LOGO);
+ 
+         //add tabs
+         List<String> storagePathList = StorageUtils.getSystemFileDiskPath();
+         if (storagePathList != null && storagePathList.size() > 0) {
+             String tabNamePrefix = getResources().getString(R.string.ext_storage);
+             for (int i = 0; i < storagePathList.size(); i++) {
+-                System.out.println(storagePathList.get(i));
++                ActionBar.TabListener listener = new TabListener(this, storagePathList.get(i), getIntent().getExtras());
++                ActionBar.Tab tab = actionBar.newTab()
++                        .setText(storagePathList.get(i))
++                        .setTabListener(listener)
++                        .setTag(storagePathList.get(i));
++                actionBar.addTab(tab);
+             }
+         }
+ 
+-
+-        if (getSupportFragmentManager().findFragmentByTag(GRID_FRAGMENT_TAG) == null) {
+-            toHome();
+-        }
++    }
+ 
+-        toggleGridView(showGridView);//??????
+-
+-    }
+-
+     private void toHome() {
++        final ActionBar actionBar = getSupportActionBar();
++        ActionBar.Tab currentTab = actionBar.getSelectedTab();
++        String tabTag = (String) currentTab.getTag();
+         //clear back stack
+-        getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+-        String basePath = Environment.getExternalStorageDirectory().getPath();
+-        changePage(basePath, "", false);//to home
++        getSupportFragmentManager().popBackStack(tabTag, FragmentManager.POP_BACK_STACK_INCLUSIVE);
++        changePage(tabTag, "", false);//to home
+     }
+ 
+-    private void saveShowMode(SharedPreferences preferences, boolean showGridView) {
+-        SharedPreferences.Editor editor = preferences.edit();
+-        editor.putBoolean(SHOW_GRID, showGridView);
+-        editor.commit();
+-    }
+ 
+-    private void toggleGridView(Boolean showGridView) {
+-        if (showGridView) {
+-            gridView.setVisibility(View.VISIBLE);
+-            listView.setVisibility(View.GONE);
+-        } else {
+-            gridView.setVisibility(View.GONE);
+-            listView.setVisibility(View.VISIBLE);
+-        }
+-    }
+-
+     @Override
+     public void onMediaItemClick(Media media, int position, String basePath, String path) {
+         if (media.getMediaType() == Media.MEDIA_TYPE_VIDEO) {
+             Intent playIntent = new Intent(this, VideoPlayerActivity.class);
++            playIntent.putExtra(VideoPlayerActivity.BASE_PATH_KEY, basePath);
+             playIntent.putExtra(VideoPlayerActivity.PATH_KEY, path);
+             playIntent.putExtra(VideoPlayerActivity.POSITION_KEY, position);
+             startActivity(playIntent);
+@@ -130,20 +110,21 @@
+         FragmentManager fragmentManager = getSupportFragmentManager();
+         FragmentTransaction transaction = fragmentManager.beginTransaction();
+ 
+-        Fragment gridFragment = new VideoGridFragment(basePath);
+-        Fragment listFragment = new VideoListFragment(basePath);
++        Fragment fragment;
++        if (showGridView()) {
++            fragment = new VideoGridFragment(basePath);
++        } else {
++            fragment = new VideoListFragment(basePath);
++        }
+ 
+         Bundle args = new Bundle();
+         args.putString(VideoPlayerActivity.PATH_KEY, newPath);
+ 
+-        gridFragment.setArguments(args);
+-        listFragment.setArguments(args);
++        fragment.setArguments(args);
++        transaction.replace(android.R.id.content, fragment, basePath);
+ 
+-        transaction.replace(R.id.grid_container, gridFragment, GRID_FRAGMENT_TAG);
+-        transaction.replace(R.id.list_container, listFragment, LIST_FRAGMENT_TAG);
+-
+         if (addToBackStack) {
+-            transaction.addToBackStack(null);
++            transaction.addToBackStack(basePath);
+         }
+ 
+         transaction.commit();
+@@ -167,9 +148,10 @@
+                 int titleRes = nextStatus ? R.string.to_list_view : R.string.to_grid_view;
+                 item.setIcon(iconRes);
+                 item.setTitle(titleRes);
++                setShowGridView(nextStatus);
+ 
+-                toggleGridView(nextStatus);
+-                saveShowMode(preferences, nextStatus);
++                //reselect it!
++                getSupportActionBar().getSelectedTab().select();
+                 return true;
+             case R.id.to_home:
+                 toHome();
+@@ -180,22 +162,77 @@
+ 
+     }
+ 
+-    public static class TabListener<T extends VideoBaseFragment> implements ActionBar.TabListener{
+ 
++    private class TabListener implements ActionBar.TabListener {
++        private final FragmentActivity mActivity;
++        private final String mBasePath;
++        private final Bundle mArgs;
++        private Fragment mFragment;
++        //tab ??showGrid??
++        private boolean showGridFlag;
+ 
++        public TabListener(FragmentActivity mActivity, String bathPath) {
++            this(mActivity, bathPath, null);
++        }
++
++        public TabListener(FragmentActivity activity, String bathPath, Bundle mArgs) {
++            this.mActivity = activity;
++            this.mBasePath = bathPath;
++            this.mArgs = mArgs;
++
++//            mFragment = mActivity.getSupportFragmentManager().findFragmentByTag(mBasePath);
++//            if (mFragment != null && !mFragment.isDetached()) {
++//                FragmentTransaction ft = mActivity.getSupportFragmentManager().beginTransaction();
++//                ft.detach(mFragment);
++//                ft.commit();
++//            }
++
++            showGridFlag = showGridView();
++
++        }
++
+         @Override
+         public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
++            if (mFragment == null) {
++                mFragment = showGridFlag ? new VideoGridFragment(mBasePath) : new VideoListFragment(mBasePath);
++                mFragment.setArguments(mArgs);
++                fragmentTransaction.add(android.R.id.content, mFragment, mBasePath);
++            } else {
++                fragmentTransaction.attach(mFragment);
++            }
+ 
+         }
+ 
+         @Override
+         public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+-
++            if (mFragment != null) {
++                fragmentTransaction.detach(mFragment);
+-        }
++            }
++        }
+ 
+         @Override
+         public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
++            Toast.makeText(mActivity, "Reselected!", Toast.LENGTH_SHORT).show();
++            final boolean realShowGridFlag = showGridView();
++            if (showGridFlag != realShowGridFlag && mFragment != null) {//
++                mFragment = showGridFlag ? new VideoGridFragment(mBasePath) : new VideoListFragment(mBasePath);
++                mFragment.setArguments(mArgs);
++                fragmentTransaction.replace(android.R.id.content, mFragment, mBasePath);
+ 
++                showGridFlag = realShowGridFlag;
+-        }
++            }
++
++        }
++
++    }
++
++    private boolean showGridView() {
++        return preferences.getBoolean(SHOW_GRID, true);
++    }
++
++    private void setShowGridView(boolean newValue) {
++        SharedPreferences.Editor editor = preferences.edit();
++        editor.putBoolean(SHOW_GRID, newValue);
++        editor.commit();
+     }
+ }
+Index: SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoBaseFragment.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoBaseFragment.java	(revision )
++++ SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoBaseFragment.java	(revision )
+@@ -33,7 +33,7 @@
+ 
+     protected String path = "";
+ 
+-    protected VideoBaseFragment(String bathPath) {
++    public VideoBaseFragment(String bathPath) {
+         this.bathPath = bathPath;
+     }
+ 
+@@ -58,7 +58,7 @@
+     @Override
+     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+         Media media = playList.get(position);
+-        callback.onMediaItemClick(media, position,bathPath, path);
++        callback.onMediaItemClick(media, position, bathPath, path);
+     }
+ 
+     @Override
+Index: SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoGridFragment.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoGridFragment.java	(revision )
++++ SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoGridFragment.java	(revision )
+@@ -48,7 +48,7 @@
+ 
+     private GridItemAnalyzer gridItemAnalyzer;
+ 
+-    protected VideoGridFragment(String bathPath) {
++    public VideoGridFragment(String bathPath) {
+         super(bathPath);
+     }
+ 
+Index: SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoPlayerActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoPlayerActivity.java	(revision )
++++ SimpleMediaPlayer/src/main/java/com/ivan/simplemediaplayer/VideoPlayerActivity.java	(revision )
+@@ -33,6 +33,7 @@
+     private static String TAG = "VideoPlayerTag";
+ 
+ 
++    public static final String BASE_PATH_KEY = "base_path";
+     public static final String PATH_KEY = "path";
+ 
+     public static final String POSITION_KEY = "position";
+@@ -54,6 +55,7 @@
+     private List<Media> playList;
+     private List<String> fileNameList = new ArrayList<String>();
+     private int currPosition;//??????
++    private String basePath;//??????????
+     private String path;//????????
+ 
+     private int duration;
+@@ -85,9 +87,10 @@
+         requestWindowFeature(Window.FEATURE_NO_TITLE);
+ 
+         currPosition = getIntent().getIntExtra(POSITION_KEY, 0);
++        basePath = getIntent().getStringExtra(BASE_PATH_KEY);
+         path = getIntent().getStringExtra(PATH_KEY);
+ 
+-        playList = VideoService.loadMp4Medias(path);
++        playList = VideoService.loadMp4Medias(basePath, path);
+ 
+         if (playList != null && !playList.isEmpty()) {
+             for (Media m : playList) {
+Index: SimpleMediaPlayer/proguard_logs/seeds.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/proguard_logs/seeds.txt	(revision )
++++ SimpleMediaPlayer/proguard_logs/seeds.txt	(revision )
+@@ -1484,9 +1484,11 @@
+ com.padplay.android.R$string: int can_not_play_pre
+ com.padplay.android.R$string: int dialog_title
+ com.padplay.android.R$string: int empty_text
++com.padplay.android.R$string: int ext_storage
+ com.padplay.android.R$string: int home_title_text
+ com.padplay.android.R$string: int no_network_connection_toast
+ com.padplay.android.R$string: int positive_text
++com.padplay.android.R$string: int sdcard
+ com.padplay.android.R$string: int title_activity_main
+ com.padplay.android.R$string: int title_activity_video_list_activty
+ com.padplay.android.R$string: int title_activity_video_player
+Index: SimpleMediaPlayer/proguard_logs/usage.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/proguard_logs/usage.txt	(revision )
++++ SimpleMediaPlayer/proguard_logs/usage.txt	(revision )
+@@ -55,14 +55,12 @@
+     492:493:public android.support.v4.app.FragmentTransaction setTransition(int)
+     497:498:public android.support.v4.app.FragmentTransaction setTransitionStyle(int)
+     512:512:public boolean isAddToBackStackAllowed()
+-    516:521:public android.support.v4.app.FragmentTransaction disallowAddToBackStack()
+     525:527:public android.support.v4.app.FragmentTransaction setBreadCrumbTitle(int)
+     531:533:public android.support.v4.app.FragmentTransaction setBreadCrumbTitle(java.lang.CharSequence)
+     537:539:public android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(int)
+     543:545:public android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(java.lang.CharSequence)
+     779:779:public int getTransition()
+     783:783:public int getTransitionStyle()
+-    787:787:public boolean isEmpty()
+ android.support.v4.app.DialogFragment
+ android.support.v4.app.Fragment:
+     static final int INITIALIZING
+@@ -192,13 +190,11 @@
+     public abstract android.support.v4.app.FragmentTransaction remove(android.support.v4.app.Fragment)
+     public abstract android.support.v4.app.FragmentTransaction hide(android.support.v4.app.Fragment)
+     public abstract android.support.v4.app.FragmentTransaction show(android.support.v4.app.Fragment)
+-    public abstract boolean isEmpty()
+     public abstract android.support.v4.app.FragmentTransaction setCustomAnimations(int,int)
+     public abstract android.support.v4.app.FragmentTransaction setCustomAnimations(int,int,int,int)
+     public abstract android.support.v4.app.FragmentTransaction setTransition(int)
+     public abstract android.support.v4.app.FragmentTransaction setTransitionStyle(int)
+     public abstract boolean isAddToBackStackAllowed()
+-    public abstract android.support.v4.app.FragmentTransaction disallowAddToBackStack()
+     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbTitle(int)
+     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbTitle(java.lang.CharSequence)
+     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(int)
+@@ -1063,15 +1059,11 @@
+     public abstract void setLogo(int)
+     public abstract void setLogo(android.graphics.drawable.Drawable)
+     public abstract void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
+-    public abstract void setSelectedNavigationItem(int)
+-    public abstract int getSelectedNavigationIndex()
+     public abstract int getNavigationItemCount()
+     public abstract void setTitle(java.lang.CharSequence)
+-    public abstract void setTitle(int)
+     public abstract void setSubtitle(java.lang.CharSequence)
+     public abstract void setSubtitle(int)
+     public abstract void setDisplayOptions(int)
+-    public abstract void setDisplayOptions(int,int)
+     public abstract void setDisplayUseLogoEnabled(boolean)
+     public abstract void setDisplayShowHomeEnabled(boolean)
+     public abstract void setDisplayHomeAsUpEnabled(boolean)
+@@ -1084,9 +1076,6 @@
+     public abstract java.lang.CharSequence getTitle()
+     public abstract java.lang.CharSequence getSubtitle()
+     public abstract int getNavigationMode()
+-    public abstract void setNavigationMode(int)
+-    public abstract android.support.v7.app.ActionBar$Tab newTab()
+-    public abstract void addTab(android.support.v7.app.ActionBar$Tab)
+     public abstract void addTab(android.support.v7.app.ActionBar$Tab,boolean)
+     public abstract void addTab(android.support.v7.app.ActionBar$Tab,int)
+     public abstract void addTab(android.support.v7.app.ActionBar$Tab,int,boolean)
+@@ -1094,7 +1083,6 @@
+     public abstract void removeTabAt(int)
+     public abstract void removeAllTabs()
+     public abstract void selectTab(android.support.v7.app.ActionBar$Tab)
+-    public abstract android.support.v7.app.ActionBar$Tab getSelectedTab()
+     public abstract android.support.v7.app.ActionBar$Tab getTabAt(int)
+     public abstract int getTabCount()
+     public abstract int getHeight()
+@@ -1103,8 +1091,6 @@
+     public abstract boolean isShowing()
+     public abstract void addOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
+     public abstract void removeOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
+-android.support.v7.app.ActionBar$Callback:
+-    public abstract android.support.v4.app.FragmentManager getSupportFragmentManager()
+ android.support.v7.app.ActionBar$LayoutParams:
+     951:953:public ActionBar$LayoutParams(int,int)
+     965:968:public ActionBar$LayoutParams(android.support.v7.app.ActionBar$LayoutParams)
+@@ -1112,19 +1098,13 @@
+ android.support.v7.app.ActionBar$OnMenuVisibilityListener
+ android.support.v7.app.ActionBar$Tab:
+     public static final int INVALID_POSITION
+-    public abstract int getPosition()
+     public abstract android.support.v7.app.ActionBar$Tab setIcon(android.graphics.drawable.Drawable)
+     public abstract android.support.v7.app.ActionBar$Tab setIcon(int)
+-    public abstract android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence)
+     public abstract android.support.v7.app.ActionBar$Tab setText(int)
+     public abstract android.support.v7.app.ActionBar$Tab setCustomView(android.view.View)
+     public abstract android.support.v7.app.ActionBar$Tab setCustomView(int)
+-    public abstract android.support.v7.app.ActionBar$Tab setTag(java.lang.Object)
+-    public abstract java.lang.Object getTag()
+-    public abstract android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener)
+     public abstract android.support.v7.app.ActionBar$Tab setContentDescription(int)
+     public abstract android.support.v7.app.ActionBar$Tab setContentDescription(java.lang.CharSequence)
+-android.support.v7.app.ActionBar$TabListener
+ android.support.v7.app.ActionBarActivity:
+     163:163:public boolean supportRequestWindowFeature(int)
+     194:194:public android.support.v7.view.ActionMode startSupportActionMode(android.support.v7.view.ActionMode$Callback)
+@@ -1174,7 +1154,6 @@
+ android.support.v7.app.ActionBarImplBase:
+     private android.app.Dialog mDialog
+     private android.view.View mContentView
+-    private android.support.v7.app.ActionBarImplBase$TabImpl mSelectedTab
+     android.support.v7.app.ActionBarImplBase$ActionModeImpl mActionMode
+     android.support.v7.view.ActionMode mDeferredDestroyActionMode
+     android.support.v7.view.ActionMode$Callback mDeferredModeDestroyCallback
+@@ -1192,14 +1171,10 @@
+     209:210:public void setLogo(int)
+     214:215:public void setLogo(android.graphics.drawable.Drawable)
+     219:221:public void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
+-    225:236:public void setSelectedNavigationItem(int)
+-    240:246:public int getSelectedNavigationIndex()
+     252:259:public int getNavigationItemCount()
+-    270:271:public void setTitle(int)
+     275:276:public void setSubtitle(java.lang.CharSequence)
+     280:281:public void setSubtitle(int)
+     285:289:public void setDisplayOptions(int)
+-    293:298:public void setDisplayOptions(int,int)
+     302:303:public void setDisplayUseLogoEnabled(boolean)
+     307:308:public void setDisplayShowHomeEnabled(boolean)
+     312:313:public void setDisplayHomeAsUpEnabled(boolean)
+@@ -1209,17 +1184,11 @@
+     337:337:public android.view.View getCustomView()
+     342:342:public java.lang.CharSequence getTitle()
+     347:347:public java.lang.CharSequence getSubtitle()
+-    357:377:public void setNavigationMode(int)
+-    386:386:public android.support.v7.app.ActionBar$Tab newTab()
+-    391:392:public void addTab(android.support.v7.app.ActionBar$Tab)
+-    396:402:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
+     406:407:public void addTab(android.support.v7.app.ActionBar$Tab,int)
+     411:417:public void addTab(android.support.v7.app.ActionBar$Tab,int,boolean)
+     421:422:public void removeTab(android.support.v7.app.ActionBar$Tab)
+     426:447:public void removeTabAt(int)
+     451:452:public void removeAllTabs()
+-    456:483:public void selectTab(android.support.v7.app.ActionBar$Tab)
+-    487:487:public android.support.v7.app.ActionBar$Tab getSelectedTab()
+     492:492:public android.support.v7.app.ActionBar$Tab getTabAt(int)
+     497:497:public int getTabCount()
+     519:519:public int getHeight()
+@@ -1230,10 +1199,7 @@
+     564:565:public void removeOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
+     568:587:public android.support.v7.view.ActionMode startActionMode(android.support.v7.view.ActionMode$Callback)
+     591:602:void animateToMode(boolean)
+-    899:917:private void ensureTabsExist()
+-    920:934:private void configureTab(android.support.v7.app.ActionBar$Tab,int)
+     937:945:private void cleanupTabs()
+-    54:54:static synthetic android.support.v7.internal.widget.ScrollingTabContainerView access$000(android.support.v7.app.ActionBarImplBase)
+     54:54:static synthetic android.content.Context access$100(android.support.v7.app.ActionBarImplBase)
+     54:54:static synthetic boolean access$200(android.support.v7.app.ActionBarImplBase)
+     54:54:static synthetic boolean access$300(android.support.v7.app.ActionBarImplBase)
+@@ -1241,7 +1207,14 @@
+     54:54:static synthetic android.support.v7.internal.widget.ActionBarContextView access$500(android.support.v7.app.ActionBarImplBase)
+     54:54:static synthetic android.support.v7.internal.widget.ActionBarView access$600(android.support.v7.app.ActionBarImplBase)
+ android.support.v7.app.ActionBarImplBase$ActionModeImpl
+-android.support.v7.app.ActionBarImplBase$TabImpl
++android.support.v7.app.ActionBarImplBase$TabImpl:
++    645:649:public android.support.v7.app.ActionBar$Tab setCustomView(android.view.View)
++    654:654:public android.support.v7.app.ActionBar$Tab setCustomView(int)
++    679:683:public android.support.v7.app.ActionBar$Tab setIcon(android.graphics.drawable.Drawable)
++    688:688:public android.support.v7.app.ActionBar$Tab setIcon(int)
++    702:702:public android.support.v7.app.ActionBar$Tab setText(int)
++    712:712:public android.support.v7.app.ActionBar$Tab setContentDescription(int)
++    717:721:public android.support.v7.app.ActionBar$Tab setContentDescription(java.lang.CharSequence)
+ android.support.v7.app.ActionBarImplHC:
+     52:56:public void show()
+     60:64:public void hide()
+@@ -1255,15 +1228,11 @@
+     90:91:public void setLogo(int)
+     95:96:public void setLogo(android.graphics.drawable.Drawable)
+     100:102:public void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
+-    106:107:public void setSelectedNavigationItem(int)
+-    111:111:public int getSelectedNavigationIndex()
+     116:116:public int getNavigationItemCount()
+     121:122:public void setTitle(java.lang.CharSequence)
+-    126:127:public void setTitle(int)
+     131:132:public void setSubtitle(java.lang.CharSequence)
+     136:137:public void setSubtitle(int)
+     141:142:public void setDisplayOptions(int)
+-    146:147:public void setDisplayOptions(int,int)
+     151:152:public void setDisplayUseLogoEnabled(boolean)
+     156:157:public void setDisplayShowHomeEnabled(boolean)
+     161:162:public void setDisplayHomeAsUpEnabled(boolean)
+@@ -1274,9 +1243,6 @@
+     186:186:public java.lang.CharSequence getTitle()
+     191:191:public java.lang.CharSequence getSubtitle()
+     196:196:public int getNavigationMode()
+-    201:202:public void setNavigationMode(int)
+-    211:214:public android.support.v7.app.ActionBar$Tab newTab()
+-    219:220:public void addTab(android.support.v7.app.ActionBar$Tab)
+     224:225:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
+     229:230:public void addTab(android.support.v7.app.ActionBar$Tab,int)
+     234:235:public void addTab(android.support.v7.app.ActionBar$Tab,int,boolean)
+@@ -1284,7 +1250,6 @@
+     244:245:public void removeTabAt(int)
+     249:250:public void removeAllTabs()
+     254:255:public void selectTab(android.support.v7.app.ActionBar$Tab)
+-    259:259:public android.support.v7.app.ActionBar$Tab getSelectedTab()
+     264:264:public android.support.v7.app.ActionBar$Tab getTabAt(int)
+     269:269:public int getTabCount()
+     279:279:public int getHeight()
+@@ -1295,7 +1260,14 @@
+     308:310:public void removeOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
+ android.support.v7.app.ActionBarImplICS$OnMenuVisibilityListenerWrapper
+ android.support.v7.app.ActionBarImplICS$OnNavigationListenerWrapper
+-android.support.v7.app.ActionBarImplICS$TabWrapper
++android.support.v7.app.ActionBarImplICS$TabWrapper:
++    372:373:public android.support.v7.app.ActionBar$Tab setIcon(android.graphics.drawable.Drawable)
++    378:379:public android.support.v7.app.ActionBar$Tab setIcon(int)
++    390:391:public android.support.v7.app.ActionBar$Tab setText(int)
++    396:397:public android.support.v7.app.ActionBar$Tab setCustomView(android.view.View)
++    402:403:public android.support.v7.app.ActionBar$Tab setCustomView(int)
++    436:437:public android.support.v7.app.ActionBar$Tab setContentDescription(int)
++    442:443:public android.support.v7.app.ActionBar$Tab setContentDescription(java.lang.CharSequence)
+ android.support.v7.appcompat.BuildConfig
+ android.support.v7.appcompat.R:
+     9:489:public R()
+@@ -1627,10 +1599,7 @@
+     606:607:public final synchronized void incrementSecondaryProgressBy(int)
+ android.support.v7.internal.widget.ScrollingTabContainerView:
+     private static final java.lang.String TAG
+-    63:75:public ScrollingTabContainerView(android.content.Context)
+-    256:268:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
+     271:283:public void addTab(android.support.v7.app.ActionBar$Tab,int,boolean)
+-    286:293:public void updateTab(int)
+     296:303:public void removeTabAt(int)
+     306:313:public void removeAllTabs()
+ android.support.v7.internal.widget.SpinnerICS:
+@@ -1776,14 +1745,11 @@
+     172:174:public void close()
+ com.ivan.simplemediaplayer.MainActivity:
+     public static final java.lang.String SHOW_GRID
+-    private static final java.lang.String GRID_FRAGMENT_TAG
+-    private static final java.lang.String LIST_FRAGMENT_TAG
+-    private android.widget.ImageView homeBtn
+-    private android.widget.ImageView showMode
+-    private android.widget.TextView homeTitle
++    private static final java.lang.String FRAGMENT_TAG
+ com.ivan.simplemediaplayer.VideoGridFragment:
+     private static final java.lang.String IMAGE_CACHE_DIR
+ com.ivan.simplemediaplayer.VideoPlayerActivity:
++    public static final java.lang.String BASE_PATH_KEY
+     public static final java.lang.String PATH_KEY
+     public static final java.lang.String POSITION_KEY
+     private static final int SEEKBAR_UPDATE_INTERVAL
+@@ -1797,7 +1763,7 @@
+     46:46:public int getDuration()
+     50:51:public void setDuration(int)
+ com.ivan.simplemediaplayer.provider.VideoService:
+-    20:21:private VideoService()
++    22:23:private VideoService()
+ com.ivan.simplemediaplayer.utils.AsyncTask:
+     private static final java.lang.String LOG_TAG
+     private static final int CORE_POOL_SIZE
+@@ -1856,7 +1822,9 @@
+ com.ivan.simplemediaplayer.utils.RecyclingBitmapDrawable:
+     static final java.lang.String LOG_TAG
+     49:60:public void setIsDisplayed(boolean)
+-com.ivan.simplemediaplayer.utils.StorageUtils
++com.ivan.simplemediaplayer.utils.StorageUtils:
++    16:16:public StorageUtils()
++    59:63:public static void main(java.lang.String[])
+ com.ivan.simplemediaplayer.utils.Utils:
+     25:25:private Utils()
+     46:46:public static boolean hasJellyBean()
+Index: SimpleMediaPlayer/proguard_logs/mapping.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/proguard_logs/mapping.txt	(revision )
++++ SimpleMediaPlayer/proguard_logs/mapping.txt	(revision )
+@@ -35,13 +35,15 @@
+     android.support.v4.app.FragmentTransaction detach(android.support.v4.app.Fragment) -> a
+     android.support.v4.app.FragmentTransaction attach(android.support.v4.app.Fragment) -> b
+     android.support.v4.app.FragmentTransaction addToBackStack(java.lang.String) -> a
++    android.support.v4.app.FragmentTransaction disallowAddToBackStack() -> a
+     void bumpBackStackNesting(int) -> a
+-    int commit() -> a
+-    int commitAllowingStateLoss() -> b
++    int commit() -> b
++    int commitAllowingStateLoss() -> c
+     int commitInternal(boolean) -> a
+     void run() -> run
+     void popFromBackStack(boolean) -> b
+-    java.lang.String getName() -> c
++    java.lang.String getName() -> d
++    boolean isEmpty() -> e
+ android.support.v4.app.BackStackRecord$Op -> android.support.v4.app.e:
+     android.support.v4.app.BackStackRecord$Op next -> a
+     android.support.v4.app.BackStackRecord$Op prev -> b
+@@ -443,9 +445,11 @@
+     android.support.v4.app.FragmentTransaction replace(int,android.support.v4.app.Fragment,java.lang.String) -> b
+     android.support.v4.app.FragmentTransaction detach(android.support.v4.app.Fragment) -> a
+     android.support.v4.app.FragmentTransaction attach(android.support.v4.app.Fragment) -> b
++    boolean isEmpty() -> e
+     android.support.v4.app.FragmentTransaction addToBackStack(java.lang.String) -> a
+-    int commit() -> a
+-    int commitAllowingStateLoss() -> b
++    android.support.v4.app.FragmentTransaction disallowAddToBackStack() -> a
++    int commit() -> b
++    int commitAllowingStateLoss() -> c
+ android.support.v4.app.LoaderManager -> android.support.v4.app.ab:
+     boolean hasRunningLoaders() -> a
+ android.support.v4.app.LoaderManager$LoaderCallbacks -> android.support.v4.app.ac:
+@@ -1468,21 +1472,39 @@
+     int clampViewPositionHorizontal(android.view.View,int,int) -> a
+     int clampViewPositionVertical(android.view.View,int,int) -> b
+ android.support.v7.app.ActionBar -> android.support.v7.a.a:
+-    int getDisplayOptions() -> a
++    void setSelectedNavigationItem(int) -> a
++    int getSelectedNavigationIndex() -> a
++    void setTitle(int) -> b
++    void setDisplayOptions(int,int) -> a
++    void setNavigationMode(int) -> c
++    int getDisplayOptions() -> b
++    android.support.v7.app.ActionBar$Tab newTab() -> c
++    void addTab(android.support.v7.app.ActionBar$Tab) -> a
++    android.support.v7.app.ActionBar$Tab getSelectedTab() -> d
+     void setHomeButtonEnabled(boolean) -> a
+-    android.content.Context getThemedContext() -> b
++    android.content.Context getThemedContext() -> e
+ android.support.v7.app.ActionBar$Callback -> android.support.v7.a.b:
++    android.support.v4.app.FragmentManager getSupportFragmentManager() -> e
+ android.support.v7.app.ActionBar$LayoutParams -> android.support.v7.a.c:
+     int gravity -> a
+ android.support.v7.app.ActionBar$OnNavigationListener -> android.support.v7.a.d:
+     boolean onNavigationItemSelected(int,long) -> a
+ android.support.v7.app.ActionBar$Tab -> android.support.v7.a.e:
+-    android.graphics.drawable.Drawable getIcon() -> a
+-    java.lang.CharSequence getText() -> b
+-    android.view.View getCustomView() -> c
+-    void select() -> d
+-    java.lang.CharSequence getContentDescription() -> e
+-android.support.v7.app.ActionBarActivity -> android.support.v7.a.f:
++    int getPosition() -> a
++    android.graphics.drawable.Drawable getIcon() -> b
++    java.lang.CharSequence getText() -> c
++    android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence) -> a
++    android.view.View getCustomView() -> d
++    android.support.v7.app.ActionBar$Tab setTag(java.lang.Object) -> a
++    java.lang.Object getTag() -> e
++    android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener) -> a
++    void select() -> f
++    java.lang.CharSequence getContentDescription() -> g
++android.support.v7.app.ActionBar$TabListener -> android.support.v7.a.f:
++    void onTabSelected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> a
++    void onTabUnselected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> b
++    void onTabReselected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> c
++android.support.v7.app.ActionBarActivity -> android.support.v7.a.g:
+     android.support.v7.app.ActionBarActivityDelegate mImpl -> n
+     android.support.v7.app.ActionBar getSupportActionBar() -> f
+     android.view.MenuInflater getMenuInflater() -> getMenuInflater
+@@ -1516,7 +1538,7 @@
+     android.content.Intent getSupportParentActivityIntent() -> a
+     boolean supportShouldUpRecreateTask(android.content.Intent) -> a
+     void supportNavigateUpTo(android.content.Intent) -> b
+-android.support.v7.app.ActionBarActivityDelegate -> android.support.v7.a.g:
++android.support.v7.app.ActionBarActivityDelegate -> android.support.v7.a.h:
+     android.support.v7.app.ActionBarActivity mActivity -> a
+     android.support.v7.app.ActionBar mActionBar -> d
+     android.view.MenuInflater mMenuInflater -> e
+@@ -1543,7 +1565,7 @@
+     boolean onBackPressed() -> g
+     java.lang.String getUiOptionsFromMetadata() -> h
+     android.content.Context getActionBarThemedContext() -> i
+-android.support.v7.app.ActionBarActivityDelegateBase -> android.support.v7.a.h:
++android.support.v7.app.ActionBarActivityDelegateBase -> android.support.v7.a.i:
+     int[] ACTION_BAR_DRAWABLE_TOGGLE_ATTRS -> d
+     android.support.v7.internal.widget.ActionBarView mActionBarView -> e
+     android.support.v7.internal.view.menu.ListMenuPresenter mListMenuPresenter -> f
+@@ -1581,13 +1603,13 @@
+     android.support.v7.internal.view.menu.MenuBuilder access$000(android.support.v7.app.ActionBarActivityDelegateBase) -> a
+     void access$100(android.support.v7.app.ActionBarActivityDelegateBase,android.support.v7.internal.view.menu.MenuBuilder) -> a
+     boolean access$202(android.support.v7.app.ActionBarActivityDelegateBase,boolean) -> a
+-android.support.v7.app.ActionBarActivityDelegateBase$1 -> android.support.v7.a.i:
++android.support.v7.app.ActionBarActivityDelegateBase$1 -> android.support.v7.a.j:
+     android.support.v7.app.ActionBarActivityDelegateBase this$0 -> a
+     void run() -> run
+-android.support.v7.app.ActionBarActivityDelegateHC -> android.support.v7.a.j:
++android.support.v7.app.ActionBarActivityDelegateHC -> android.support.v7.a.k:
+     void onCreate(android.os.Bundle) -> a
+     android.support.v7.app.ActionBar createSupportActionBar() -> a
+-android.support.v7.app.ActionBarActivityDelegateICS -> android.support.v7.a.k:
++android.support.v7.app.ActionBarActivityDelegateICS -> android.support.v7.a.l:
+     android.view.Menu mMenu -> d
+     android.support.v7.app.ActionBar createSupportActionBar() -> a
+     void onCreate(android.os.Bundle) -> a
+@@ -1608,7 +1630,7 @@
+     void onActionModeFinished(android.view.ActionMode) -> b
+     void supportInvalidateOptionsMenu() -> f
+     boolean onBackPressed() -> g
+-android.support.v7.app.ActionBarActivityDelegateICS$WindowCallbackWrapper -> android.support.v7.a.l:
++android.support.v7.app.ActionBarActivityDelegateICS$WindowCallbackWrapper -> android.support.v7.a.m:
+     android.view.Window$Callback mWrapped -> a
+     android.support.v7.app.ActionBarActivityDelegateICS this$0 -> b
+     boolean dispatchKeyEvent(android.view.KeyEvent) -> dispatchKeyEvent
+@@ -1632,7 +1654,7 @@
+     android.view.ActionMode onWindowStartingActionMode(android.view.ActionMode$Callback) -> onWindowStartingActionMode
+     void onActionModeStarted(android.view.ActionMode) -> onActionModeStarted
+     void onActionModeFinished(android.view.ActionMode) -> onActionModeFinished
+-android.support.v7.app.ActionBarImplBase -> android.support.v7.a.m:
++android.support.v7.app.ActionBarImplBase -> android.support.v7.a.n:
+     android.content.Context mContext -> b
+     android.content.Context mThemedContext -> c
+     android.support.v7.app.ActionBarActivity mActivity -> d
+@@ -1644,55 +1666,120 @@
+     android.support.v7.internal.widget.ActionBarContainer mSplitView -> j
+     android.support.v7.internal.widget.ScrollingTabContainerView mTabScrollView -> k
+     java.util.ArrayList mTabs -> l
+-    int mSavedTabPosition -> m
+-    boolean mDisplayHomeAsUpSet -> n
+-    java.util.ArrayList mMenuVisibilityListeners -> o
+-    int mContextDisplayMode -> p
+-    boolean mHasEmbeddedTabs -> q
++    android.support.v7.app.ActionBarImplBase$TabImpl mSelectedTab -> m
++    int mSavedTabPosition -> n
++    boolean mDisplayHomeAsUpSet -> o
++    java.util.ArrayList mMenuVisibilityListeners -> p
++    int mContextDisplayMode -> q
++    boolean mHasEmbeddedTabs -> r
+     android.os.Handler mHandler -> a
+-    int mCurWindowVisibility -> r
+-    boolean mHiddenByApp -> s
+-    boolean mHiddenBySystem -> t
+-    boolean mShowingForMode -> u
+-    boolean mNowShowing -> v
+-    boolean mShowHideAnimationEnabled -> w
+-    android.support.v7.app.ActionBar$Callback mCallback -> x
++    int mCurWindowVisibility -> s
++    boolean mHiddenByApp -> t
++    boolean mHiddenBySystem -> u
++    boolean mShowingForMode -> v
++    boolean mNowShowing -> w
++    boolean mShowHideAnimationEnabled -> x
++    android.support.v7.app.ActionBar$Callback mCallback -> y
+     void init(android.support.v7.app.ActionBarActivity) -> a
+     void onConfigurationChanged(android.content.res.Configuration) -> a
+     void setHasEmbeddedTabs(boolean) -> e
++    void setSelectedNavigationItem(int) -> a
++    int getSelectedNavigationIndex() -> a
+     void setTitle(java.lang.CharSequence) -> a
++    void setTitle(int) -> b
++    void setDisplayOptions(int,int) -> a
+     void setHomeButtonEnabled(boolean) -> a
+-    int getNavigationMode() -> c
+-    int getDisplayOptions() -> a
+-    android.content.Context getThemedContext() -> b
+-    void showForActionMode() -> d
+-    void hideForActionMode() -> e
++    int getNavigationMode() -> f
++    void setNavigationMode(int) -> c
++    int getDisplayOptions() -> b
++    android.support.v7.app.ActionBar$Tab newTab() -> c
++    void addTab(android.support.v7.app.ActionBar$Tab) -> a
++    void addTab(android.support.v7.app.ActionBar$Tab,boolean) -> a
++    void selectTab(android.support.v7.app.ActionBar$Tab) -> b
++    android.support.v7.app.ActionBar$Tab getSelectedTab() -> d
++    android.content.Context getThemedContext() -> e
++    void showForActionMode() -> g
++    void hideForActionMode() -> h
++    void ensureTabsExist() -> j
++    void configureTab(android.support.v7.app.ActionBar$Tab,int) -> a
+     boolean checkShowingFlags(boolean,boolean,boolean) -> a
+     void updateVisibility(boolean) -> f
+     void setShowHideAnimationEnabled(boolean) -> b
+     void doShow(boolean) -> c
+     void doHide(boolean) -> d
+-    boolean isShowHideAnimationEnabled() -> f
+-android.support.v7.app.ActionBarImplHC -> android.support.v7.a.n:
++    boolean isShowHideAnimationEnabled() -> i
++    android.support.v7.internal.widget.ScrollingTabContainerView access$000(android.support.v7.app.ActionBarImplBase) -> a
++android.support.v7.app.ActionBarImplBase$TabImpl -> android.support.v7.a.o:
++    android.support.v7.app.ActionBar$TabListener mCallback -> b
++    java.lang.Object mTag -> c
++    android.graphics.drawable.Drawable mIcon -> d
++    java.lang.CharSequence mText -> e
++    java.lang.CharSequence mContentDesc -> f
++    int mPosition -> g
++    android.view.View mCustomView -> h
++    android.support.v7.app.ActionBarImplBase this$0 -> a
++    java.lang.Object getTag() -> e
++    android.support.v7.app.ActionBar$Tab setTag(java.lang.Object) -> a
++    android.support.v7.app.ActionBar$TabListener getCallback() -> h
++    android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener) -> a
++    android.view.View getCustomView() -> d
++    android.graphics.drawable.Drawable getIcon() -> b
++    int getPosition() -> a
++    void setPosition(int) -> a
++    java.lang.CharSequence getText() -> c
++    android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence) -> a
++    void select() -> f
++    java.lang.CharSequence getContentDescription() -> g
++android.support.v7.app.ActionBarImplHC -> android.support.v7.a.p:
+     android.support.v7.internal.widget.NativeActionModeAwareLayout mNativeActionModeAwareLayout -> b
+     android.view.ActionMode mCurActionMode -> c
+     android.view.ActionMode$Callback onActionModeForChild(android.view.ActionMode$Callback) -> a
+-    boolean isShowHideAnimationEnabled() -> f
++    boolean isShowHideAnimationEnabled() -> i
+     android.view.ActionMode access$002(android.support.v7.app.ActionBarImplHC,android.view.ActionMode) -> a
+-android.support.v7.app.ActionBarImplHC$CallbackWrapper -> android.support.v7.a.o:
++android.support.v7.app.ActionBarImplHC$CallbackWrapper -> android.support.v7.a.q:
+     android.view.ActionMode$Callback mWrappedCallback -> b
+     android.support.v7.app.ActionBarImplHC this$0 -> a
+     boolean onCreateActionMode(android.view.ActionMode,android.view.Menu) -> onCreateActionMode
+     boolean onPrepareActionMode(android.view.ActionMode,android.view.Menu) -> onPrepareActionMode
+     boolean onActionItemClicked(android.view.ActionMode,android.view.MenuItem) -> onActionItemClicked
+     void onDestroyActionMode(android.view.ActionMode) -> onDestroyActionMode
+-android.support.v7.app.ActionBarImplICS -> android.support.v7.a.p:
++android.support.v7.app.ActionBarImplICS -> android.support.v7.a.r:
+     android.app.Activity mActivity -> a
+     android.support.v7.app.ActionBar$Callback mCallback -> b
+     android.app.ActionBar mActionBar -> c
+     java.util.ArrayList mAddedMenuVisWrappers -> d
+-    int getDisplayOptions() -> a
+-    android.content.Context getThemedContext() -> b
++    void setSelectedNavigationItem(int) -> a
++    int getSelectedNavigationIndex() -> a
++    void setTitle(int) -> b
++    void setDisplayOptions(int,int) -> a
++    void setNavigationMode(int) -> c
++    int getDisplayOptions() -> b
++    android.support.v7.app.ActionBar$Tab newTab() -> c
++    void addTab(android.support.v7.app.ActionBar$Tab) -> a
++    android.support.v7.app.ActionBar$Tab getSelectedTab() -> d
++    android.content.Context getThemedContext() -> e
++android.support.v7.app.ActionBarImplICS$TabWrapper -> android.support.v7.a.s:
++    android.app.ActionBar$Tab mWrappedTab -> a
++    java.lang.Object mTag -> c
++    android.support.v4.app.FragmentTransaction mActiveTransaction -> d
++    java.lang.CharSequence mContentDescription -> e
++    android.support.v7.app.ActionBar$TabListener mTabListener -> f
++    android.support.v7.app.ActionBarImplICS this$0 -> b
++    int getPosition() -> a
++    android.graphics.drawable.Drawable getIcon() -> b
++    java.lang.CharSequence getText() -> c
++    android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence) -> a
++    android.view.View getCustomView() -> d
++    android.support.v7.app.ActionBar$Tab setTag(java.lang.Object) -> a
++    java.lang.Object getTag() -> e
++    android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener) -> a
++    void select() -> f
++    java.lang.CharSequence getContentDescription() -> g
++    void onTabSelected(android.app.ActionBar$Tab,android.app.FragmentTransaction) -> onTabSelected
++    void onTabUnselected(android.app.ActionBar$Tab,android.app.FragmentTransaction) -> onTabUnselected
++    void onTabReselected(android.app.ActionBar$Tab,android.app.FragmentTransaction) -> onTabReselected
++    android.support.v4.app.FragmentTransaction getActiveTransaction() -> h
++    void commitActiveTransaction() -> i
+ android.support.v7.appcompat.R -> android.support.v7.b.a:
+ android.support.v7.appcompat.R$anim -> android.support.v7.b.b:
+     int abc_fade_in -> abc_fade_in
+@@ -3584,7 +3671,9 @@
+     void animateToTab(int) -> a
+     void onAttachedToWindow() -> onAttachedToWindow
+     void onDetachedFromWindow() -> onDetachedFromWindow
+-    android.support.v7.internal.widget.ScrollingTabContainerView$TabView createTabView(android.support.v7.app.ActionBar$Tab,boolean) -> a
++    android.support.v7.internal.widget.ScrollingTabContainerView$TabView createTabView(android.support.v7.app.ActionBar$Tab,boolean) -> b
++    void addTab(android.support.v7.app.ActionBar$Tab,boolean) -> a
++    void updateTab(int) -> b
+     void onItemClick(android.support.v7.internal.widget.AdapterViewICS,android.view.View,int,long) -> a
+     android.widget.LinearLayout access$200(android.support.v7.internal.widget.ScrollingTabContainerView) -> a
+     android.support.v7.internal.widget.ScrollingTabContainerView$TabView access$300(android.support.v7.internal.widget.ScrollingTabContainerView,android.support.v7.app.ActionBar$Tab,boolean) -> a
+@@ -3843,79 +3932,78 @@
+     android.widget.ImageView mIcon2 -> d
+     android.widget.ImageView mIconRefine -> e
+ com.ivan.simplemediaplayer.MainActivity -> com.ivan.simplemediaplayer.MainActivity:
+-    android.view.View gridView -> o
+-    android.view.View listView -> p
+-    boolean showGridView -> q
+-    android.content.SharedPreferences preferences -> r
++    boolean showGridView -> o
++    android.content.SharedPreferences preferences -> p
+     void onCreate(android.os.Bundle) -> onCreate
++    void onSaveInstanceState(android.os.Bundle) -> onSaveInstanceState
+     void toHome() -> h
+-    void saveShowMode(android.content.SharedPreferences,boolean) -> a
+-    void toggleGridView(java.lang.Boolean) -> a
+-    void onMediaItemClick(com.ivan.simplemediaplayer.domain.Media,int,java.lang.String) -> a
++    void onMediaItemClick(com.ivan.simplemediaplayer.domain.Media,int,java.lang.String,java.lang.String) -> a
+     android.view.View getEmptyView(android.view.LayoutInflater) -> a
+-    void changePage(java.lang.String,boolean) -> a
++    void changePage(java.lang.String,java.lang.String,boolean) -> a
+     boolean onCreateOptionsMenu(android.view.Menu) -> onCreateOptionsMenu
+     boolean onOptionsItemSelected(android.view.MenuItem) -> onOptionsItemSelected
++    boolean showGridView() -> i
++    void setShowGridView(boolean) -> b
++    boolean access$000(com.ivan.simplemediaplayer.MainActivity) -> a
+ com.ivan.simplemediaplayer.MainActivity$1 -> com.ivan.simplemediaplayer.a:
+     com.ivan.simplemediaplayer.MainActivity this$0 -> a
+     void onClick(android.view.View) -> onClick
+-com.ivan.simplemediaplayer.OnMediaItemClickListener -> com.ivan.simplemediaplayer.b:
+-    void onMediaItemClick(com.ivan.simplemediaplayer.domain.Media,int,java.lang.String) -> a
++com.ivan.simplemediaplayer.MainActivity$TabListener -> com.ivan.simplemediaplayer.b:
++    android.support.v4.app.FragmentActivity mActivity -> b
++    java.lang.String mBasePath -> c
++    android.os.Bundle mArgs -> d
++    android.support.v4.app.Fragment mFragment -> e
++    boolean showGridFlag -> f
++    com.ivan.simplemediaplayer.MainActivity this$0 -> a
++    void onTabSelected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> a
++    void onTabUnselected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> b
++    void onTabReselected(android.support.v7.app.ActionBar$Tab,android.support.v4.app.FragmentTransaction) -> c
++    void createAndAdd(android.support.v4.app.FragmentTransaction) -> a
++com.ivan.simplemediaplayer.OnMediaItemClickListener -> com.ivan.simplemediaplayer.c:
++    void onMediaItemClick(com.ivan.simplemediaplayer.domain.Media,int,java.lang.String,java.lang.String) -> a
+     android.view.View getEmptyView(android.view.LayoutInflater) -> a
+-com.ivan.simplemediaplayer.VideoGridFragment -> com.ivan.simplemediaplayer.c:
+-    android.widget.GridView gridView -> P
+-    java.util.List playList -> Q
+-    com.ivan.simplemediaplayer.VideoGridFragment$GridAdapter gridAdapter -> R
+-    int thumbImageSize -> S
+-    int columns -> T
+-    com.ivan.simplemediaplayer.utils.ImageFetcher mImageFetcher -> U
+-    java.lang.String path -> V
+-    com.ivan.simplemediaplayer.OnMediaItemClickListener callback -> W
+-    com.ivan.simplemediaplayer.utils.GridItemAnalyzer gridItemAnalyzer -> X
++com.ivan.simplemediaplayer.VideoBaseFragment -> com.ivan.simplemediaplayer.d:
++    com.ivan.simplemediaplayer.VideoBaseFragment$VideoBaseAdapter mAdapter -> P
++    com.ivan.simplemediaplayer.OnMediaItemClickListener callback -> Q
++    java.util.List playList -> R
++    java.lang.String bathPath -> S
++    java.lang.String path -> T
+     void onCreate(android.os.Bundle) -> d
+-    void onAttach(android.app.Activity) -> a
+-    android.view.View onCreateView(android.view.LayoutInflater,android.view.ViewGroup,android.os.Bundle) -> a
+-    boolean isEmpty() -> x
++    void init() -> x
++    boolean isEmpty() -> y
+     void onItemClick(android.widget.AdapterView,android.view.View,int,long) -> onItemClick
+-    java.util.List access$100(com.ivan.simplemediaplayer.VideoGridFragment) -> a
+-    com.ivan.simplemediaplayer.utils.ImageFetcher access$300(com.ivan.simplemediaplayer.VideoGridFragment) -> b
+-com.ivan.simplemediaplayer.VideoGridFragment$1 -> com.ivan.simplemediaplayer.d:
+-com.ivan.simplemediaplayer.VideoGridFragment$GridAdapter -> com.ivan.simplemediaplayer.e:
+-    android.view.LayoutInflater mInflater -> b
+-    android.content.Context context -> c
+-    com.ivan.simplemediaplayer.VideoGridFragment this$0 -> a
++    void onAttach(android.app.Activity) -> a
++com.ivan.simplemediaplayer.VideoBaseFragment$VideoBaseAdapter -> com.ivan.simplemediaplayer.e:
++    android.view.LayoutInflater mInflater -> a
++    android.content.Context context -> b
++    java.util.List playList -> c
++    com.ivan.simplemediaplayer.VideoBaseFragment this$0 -> d
+     int getCount() -> getCount
+     java.lang.Object getItem(int) -> getItem
+     long getItemId(int) -> getItemId
+-    android.view.View getView(int,android.view.View,android.view.ViewGroup) -> getView
+-com.ivan.simplemediaplayer.VideoGridFragment$GridAdapter$ViewHolder -> com.ivan.simplemediaplayer.f:
++com.ivan.simplemediaplayer.VideoBaseFragment$VideoBaseAdapter$ViewHolder -> com.ivan.simplemediaplayer.f:
+     android.widget.TextView text -> a
+     android.widget.ImageView icon -> b
+-    com.ivan.simplemediaplayer.VideoGridFragment$GridAdapter this$1 -> c
+-com.ivan.simplemediaplayer.VideoListFragment -> com.ivan.simplemediaplayer.g:
+-    android.widget.ListView mListView -> P
+-    java.util.List playList -> Q
+-    java.lang.String path -> R
+-    com.ivan.simplemediaplayer.OnMediaItemClickListener callback -> S
+-    void onCreate(android.os.Bundle) -> d
+-    void onAttach(android.app.Activity) -> a
++    com.ivan.simplemediaplayer.VideoBaseFragment$VideoBaseAdapter this$1 -> c
++com.ivan.simplemediaplayer.VideoGridFragment -> com.ivan.simplemediaplayer.g:
++    android.widget.GridView gridView -> U
++    int thumbImageSize -> V
++    int columns -> W
++    com.ivan.simplemediaplayer.utils.ImageFetcher mImageFetcher -> X
++    com.ivan.simplemediaplayer.utils.GridItemAnalyzer gridItemAnalyzer -> Y
++    void init() -> x
+     android.view.View onCreateView(android.view.LayoutInflater,android.view.ViewGroup,android.os.Bundle) -> a
+-    boolean isEmpty() -> x
+-    void onItemClick(android.widget.AdapterView,android.view.View,int,long) -> onItemClick
+-    java.util.List access$100(com.ivan.simplemediaplayer.VideoListFragment) -> a
+-com.ivan.simplemediaplayer.VideoListFragment$1 -> com.ivan.simplemediaplayer.h:
+-com.ivan.simplemediaplayer.VideoListFragment$IconTextAdapter -> com.ivan.simplemediaplayer.i:
+-    android.view.LayoutInflater mInflater -> b
+-    android.content.Context context -> c
+-    com.ivan.simplemediaplayer.VideoListFragment this$0 -> a
+-    int getCount() -> getCount
+-    java.lang.Object getItem(int) -> getItem
+-    long getItemId(int) -> getItemId
++    com.ivan.simplemediaplayer.utils.ImageFetcher access$000(com.ivan.simplemediaplayer.VideoGridFragment) -> a
++com.ivan.simplemediaplayer.VideoGridFragment$GridAdapter -> com.ivan.simplemediaplayer.h:
++    com.ivan.simplemediaplayer.VideoGridFragment this$0 -> e
+     android.view.View getView(int,android.view.View,android.view.ViewGroup) -> getView
+-com.ivan.simplemediaplayer.VideoListFragment$IconTextAdapter$ViewHolder -> com.ivan.simplemediaplayer.j:
+-    android.widget.TextView text -> a
+-    android.widget.ImageView icon -> b
+-    com.ivan.simplemediaplayer.VideoListFragment$IconTextAdapter this$1 -> c
++com.ivan.simplemediaplayer.VideoListFragment -> com.ivan.simplemediaplayer.i:
++    android.widget.ListView mListView -> U
++    void init() -> x
++    android.view.View onCreateView(android.view.LayoutInflater,android.view.ViewGroup,android.os.Bundle) -> a
++com.ivan.simplemediaplayer.VideoListFragment$IconTextAdapter -> com.ivan.simplemediaplayer.j:
++    com.ivan.simplemediaplayer.VideoListFragment this$0 -> e
++    android.view.View getView(int,android.view.View,android.view.ViewGroup) -> getView
+ com.ivan.simplemediaplayer.VideoPlayerActivity -> com.ivan.simplemediaplayer.VideoPlayerActivity:
+     java.lang.String TAG -> a
+     android.widget.VideoView contentView -> b
+@@ -3934,10 +4022,11 @@
+     java.util.List playList -> o
+     java.util.List fileNameList -> p
+     int currPosition -> q
+-    java.lang.String path -> r
+-    int duration -> s
+-    android.os.Handler progressUpdateHandler -> t
+-    java.lang.Runnable progressUpdateJob -> u
++    java.lang.String basePath -> r
++    java.lang.String path -> s
++    int duration -> t
++    android.os.Handler progressUpdateHandler -> u
++    java.lang.Runnable progressUpdateJob -> v
+     void updateProgress() -> b
+     void onCreate(android.os.Bundle) -> onCreate
+     void onPause() -> onPause
+@@ -4035,8 +4124,9 @@
+     void setMediaType(int) -> a
+ com.ivan.simplemediaplayer.provider.VideoService -> com.ivan.simplemediaplayer.b.a:
+     java.io.File HOME_DIR -> a
+-    java.util.List loadMedias(java.lang.String) -> a
+-    java.util.List loadMp4Medias(java.lang.String) -> b
++    java.util.List loadMedias(java.lang.String,java.lang.String) -> a
++    java.io.File getTargetDir(java.lang.String,java.lang.String) -> c
++    java.util.List loadMp4Medias(java.lang.String,java.lang.String) -> b
+     java.util.List listMedias(java.io.File,boolean) -> a
+     com.ivan.simplemediaplayer.domain.Media dirToMedia(java.io.File) -> a
+     com.ivan.simplemediaplayer.domain.Media fileToMedia(java.io.File) -> b
+@@ -4257,7 +4347,9 @@
+     void setIsCached(boolean) -> a
+     void checkState() -> a
+     boolean hasValidBitmap() -> b
+-com.ivan.simplemediaplayer.utils.Utils -> com.ivan.simplemediaplayer.c.y:
++com.ivan.simplemediaplayer.utils.StorageUtils -> com.ivan.simplemediaplayer.c.y:
++    java.util.List getSystemFileDiskPath() -> a
++com.ivan.simplemediaplayer.utils.Utils -> com.ivan.simplemediaplayer.c.z:
+     boolean hasFroyo() -> a
+     boolean hasGingerbread() -> b
+     boolean hasHoneycomb() -> c
+Index: SimpleMediaPlayer/SimpleMediaPlayer.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- SimpleMediaPlayer/SimpleMediaPlayer.iml	(revision )
++++ SimpleMediaPlayer/SimpleMediaPlayer.iml	(revision )
+@@ -7,7 +7,6 @@
+         <option name="RES_FOLDER_RELATIVE_PATH" value="/src/main/res" />
+         <option name="ASSETS_FOLDER_RELATIVE_PATH" value="/." />
+         <option name="APK_PATH" value="/build/apk/SimpleMediaPlayer.apk" />
+-        <option name="RUN_PROGUARD" value="true" />
+         <option name="ENABLE_PRE_DEXING" value="false" />
+       </configuration>
+     </facet>
+@@ -62,10 +61,10 @@
+     </content>
+     <orderEntry type="jdk" jdkName="Android 4.3 Platform" jdkType="Android SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+-    <orderEntry type="library" exported="" name="disklrucache-2.0.2" level="project" />
+-    <orderEntry type="library" exported="" name="support-v4-18.0.0" level="project" />
+-    <orderEntry type="library" exported="" name="android-support-v7-appcompat" level="project" />
+-    <orderEntry type="module" module-name="appcompat" exported="" />
++    <orderEntry type="library" name="disklrucache-2.0.2" level="project" />
++    <orderEntry type="library" name="support-v4-18.0.0" level="project" />
++    <orderEntry type="library" name="android-support-v7-appcompat" level="project" />
++    <orderEntry type="module" module-name="appcompat" />
+   </component>
+ </module>
+ 

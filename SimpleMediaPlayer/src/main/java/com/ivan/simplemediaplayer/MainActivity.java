@@ -3,12 +3,13 @@ package com.ivan.simplemediaplayer;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -28,8 +29,11 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
 
     public static final String SHOW_GRID = "showGrid";
 
-    private static final String FRAGMENT_TAG = "fragmentTag";
+    private static final String GRID_FRAGMENT_TAG = "gridFragmentTag";
+    private static final String LIST_FRAGMENT_TAG = "listFragmentTag";
 
+    private View gridView;
+    private View listView;
     private boolean showGridView;
     //保存了用户使用的试图模式
     private SharedPreferences preferences;
@@ -37,46 +41,62 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+
+        gridView = findViewById(R.id.grid_container);
+        listView = findViewById(R.id.list_container);
 
         preferences = getPreferences(MODE_PRIVATE);
         showGridView = preferences.getBoolean(SHOW_GRID, true);
 
         final ActionBar actionBar = getSupportActionBar();
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
         actionBar.setTitle(R.string.home_title_text);
-        actionBar.setDisplayOptions(0, ActionBar.DISPLAY_USE_LOGO);
 
         //add tabs
         List<String> storagePathList = StorageUtils.getSystemFileDiskPath();
         if (storagePathList != null && storagePathList.size() > 0) {
             String tabNamePrefix = getResources().getString(R.string.ext_storage);
             for (int i = 0; i < storagePathList.size(); i++) {
-                ActionBar.TabListener listener = new TabListener(this, storagePathList.get(i), getIntent().getExtras());
-                ActionBar.Tab tab = actionBar.newTab()
-                        .setText(storagePathList.get(i))
-                        .setTabListener(listener)
-                        .setTag(storagePathList.get(i));
-                actionBar.addTab(tab);
+                System.out.println(storagePathList.get(i));
             }
         }
+
+
+        if (getSupportFragmentManager().findFragmentByTag(GRID_FRAGMENT_TAG) == null) {
+            toHome();
+        }
+
+        toggleGridView(showGridView);//初始化的界面
 
     }
 
     private void toHome() {
-        final ActionBar actionBar = getSupportActionBar();
-        ActionBar.Tab currentTab = actionBar.getSelectedTab();
-        String tabTag = (String) currentTab.getTag();
         //clear back stack
-        getSupportFragmentManager().popBackStack(tabTag, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        changePage(tabTag, "", false);//to home
+        getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        String basePath = Environment.getExternalStorageDirectory().getPath();
+        changePage(basePath, "", false);//to home
     }
 
+    private void saveShowMode(SharedPreferences preferences, boolean showGridView) {
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(SHOW_GRID, showGridView);
+        editor.commit();
+    }
+
+    private void toggleGridView(Boolean showGridView) {
+        if (showGridView) {
+            gridView.setVisibility(View.VISIBLE);
+            listView.setVisibility(View.GONE);
+        } else {
+            gridView.setVisibility(View.GONE);
+            listView.setVisibility(View.VISIBLE);
+        }
+    }
 
     @Override
     public void onMediaItemClick(Media media, int position, String basePath, String path) {
         if (media.getMediaType() == Media.MEDIA_TYPE_VIDEO) {
             Intent playIntent = new Intent(this, VideoPlayerActivity.class);
-            playIntent.putExtra(VideoPlayerActivity.BASE_PATH_KEY, basePath);
             playIntent.putExtra(VideoPlayerActivity.PATH_KEY, path);
             playIntent.putExtra(VideoPlayerActivity.POSITION_KEY, position);
             startActivity(playIntent);
@@ -110,21 +130,20 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
 
-        Fragment fragment;
-        if (showGridView()) {
-            fragment = new VideoGridFragment(basePath);
-        } else {
-            fragment = new VideoListFragment(basePath);
-        }
+        Fragment gridFragment = new VideoGridFragment(basePath);
+        Fragment listFragment = new VideoListFragment(basePath);
 
         Bundle args = new Bundle();
         args.putString(VideoPlayerActivity.PATH_KEY, newPath);
 
-        fragment.setArguments(args);
-        transaction.replace(android.R.id.content, fragment, basePath);
+        gridFragment.setArguments(args);
+        listFragment.setArguments(args);
+
+        transaction.replace(R.id.grid_container, gridFragment, GRID_FRAGMENT_TAG);
+        transaction.replace(R.id.list_container, listFragment, LIST_FRAGMENT_TAG);
 
         if (addToBackStack) {
-            transaction.addToBackStack(basePath);
+            transaction.addToBackStack(null);
         }
 
         transaction.commit();
@@ -148,10 +167,9 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
                 int titleRes = nextStatus ? R.string.to_list_view : R.string.to_grid_view;
                 item.setIcon(iconRes);
                 item.setTitle(titleRes);
-                setShowGridView(nextStatus);
 
-                //reselect it!
-                getSupportActionBar().getSelectedTab().select();
+                toggleGridView(nextStatus);
+                saveShowMode(preferences, nextStatus);
                 return true;
             case R.id.to_home:
                 toHome();
@@ -162,77 +180,22 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
 
     }
 
+    public static class TabListener<T extends VideoBaseFragment> implements ActionBar.TabListener{
 
-    private class TabListener implements ActionBar.TabListener {
-        private final FragmentActivity mActivity;
-        private final String mBasePath;
-        private final Bundle mArgs;
-        private Fragment mFragment;
-        //tab 内的showGrid标记
-        private boolean showGridFlag;
-
-        public TabListener(FragmentActivity mActivity, String bathPath) {
-            this(mActivity, bathPath, null);
-        }
-
-        public TabListener(FragmentActivity activity, String bathPath, Bundle mArgs) {
-            this.mActivity = activity;
-            this.mBasePath = bathPath;
-            this.mArgs = mArgs;
-
-//            mFragment = mActivity.getSupportFragmentManager().findFragmentByTag(mBasePath);
-//            if (mFragment != null && !mFragment.isDetached()) {
-//                FragmentTransaction ft = mActivity.getSupportFragmentManager().beginTransaction();
-//                ft.detach(mFragment);
-//                ft.commit();
-//            }
-
-            showGridFlag = showGridView();
-
-        }
 
         @Override
         public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-            if (mFragment == null) {
-                mFragment = showGridFlag ? new VideoGridFragment(mBasePath) : new VideoListFragment(mBasePath);
-                mFragment.setArguments(mArgs);
-                fragmentTransaction.add(android.R.id.content, mFragment, mBasePath);
-            } else {
-                fragmentTransaction.attach(mFragment);
-            }
 
         }
 
         @Override
         public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-            if (mFragment != null) {
-                fragmentTransaction.detach(mFragment);
-            }
+
         }
 
         @Override
         public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-            Toast.makeText(mActivity, "Reselected!", Toast.LENGTH_SHORT).show();
-            final boolean realShowGridFlag = showGridView();
-            if (showGridFlag != realShowGridFlag && mFragment != null) {//
-                mFragment = showGridFlag ? new VideoGridFragment(mBasePath) : new VideoListFragment(mBasePath);
-                mFragment.setArguments(mArgs);
-                fragmentTransaction.replace(android.R.id.content, mFragment, mBasePath);
-
-                showGridFlag = realShowGridFlag;
-            }
 
         }
-
-    }
-
-    private boolean showGridView() {
-        return preferences.getBoolean(SHOW_GRID, true);
-    }
-
-    private void setShowGridView(boolean newValue) {
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean(SHOW_GRID, newValue);
-        editor.commit();
     }
 }

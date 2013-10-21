@@ -48,7 +48,7 @@ public class VideoGridFragment extends VideoBaseFragment {
 
     private GridItemAnalyzer gridItemAnalyzer;
 
-    public VideoGridFragment(String bathPath) {
+    protected VideoGridFragment(String bathPath) {
         super(bathPath);
     }
 
