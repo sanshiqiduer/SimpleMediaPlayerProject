@@ -124,6 +124,7 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
 
     private void toggleGridView(Boolean showGridView) {
         if (showGridView) {
+
             gridView.setVisibility(View.VISIBLE);
             listView.setVisibility(View.GONE);
         } else {
@@ -194,6 +195,14 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.main_menu, menu);
+        MenuItem item = menu.findItem(R.id.show_mode);
+        if (item != null) {
+            boolean showGridView = preferences.getBoolean(SHOW_GRID, true);
+            int iconRes = showGridView ? R.drawable.list_view : R.drawable.grid_view;
+            int titleRes = showGridView ? R.string.to_list_view : R.string.to_grid_view;
+            item.setIcon(iconRes);
+            item.setTitle(titleRes);
+        }
         return super.onCreateOptionsMenu(menu);
     }
 

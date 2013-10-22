@@ -5,6 +5,6 @@
     android:layout_height="fill_parent"
     android:numColumns="auto_fit"
     android:stretchMode="columnWidth"
-    android:verticalSpacing="@dimen/mc_dp_15"
+    android:verticalSpacing="@dimen/mc_dp_10"
     android:columnWidth="@dimen/mc_dp_120">
 </GridView>
