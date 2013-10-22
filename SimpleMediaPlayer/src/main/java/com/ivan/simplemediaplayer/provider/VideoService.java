@@ -80,7 +80,7 @@ public class VideoService {
             }
         }
 
-        if (mp4Files != null && dirs.length > 0) {
+        if (mp4Files != null && mp4Files.length > 0) {
             //sort
             Arrays.sort(mp4Files);
             for (File mp4File : mp4Files) {

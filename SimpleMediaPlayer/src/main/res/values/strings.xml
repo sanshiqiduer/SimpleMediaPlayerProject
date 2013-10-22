@@ -25,6 +25,6 @@
     <string name="to_grid_view">网格视图</string>
     <string name="to_home">目录</string>
 
-    <string name="sdcard">SD卡</string>
+    <string name="build_in_storage">内置存储器</string>
     <string name="ext_storage">扩展存储器</string>
 </resources>

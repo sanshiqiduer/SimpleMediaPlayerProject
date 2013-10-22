@@ -23,8 +23,10 @@ import android.widget.VideoView;
 
 import com.ivan.simplemediaplayer.domain.Media;
 import com.ivan.simplemediaplayer.provider.VideoService;
+import com.ivan.simplemediaplayer.utils.FileMaskUtils;
 import com.padplay.android.R;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.List;
@@ -175,6 +177,12 @@ public class VideoPlayerActivity extends Activity {
 
         Media target = playList.get(position);
         if (target == null) return;
+        try {
+            FileMaskUtils.decodeFile(target.getPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         contentView.setVideoPath(target.getPath());
         titleView.setText(target.getDisplayName());
         playListView.setItemChecked(position, true);
@@ -332,7 +340,11 @@ public class VideoPlayerActivity extends Activity {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(VideoPlayerActivity.this);
-                AlertDialog dialog = builder.setTitle(R.string.dialog_title).setMessage(R.string.video_play_exception).setPositiveButton(R.string.positive_text, null).create();
+                AlertDialog dialog = builder
+                        .setTitle(R.string.dialog_title)
+                        .setMessage(R.string.video_play_exception)
+                        .setPositiveButton(R.string.positive_text, null)
+                        .create();
 
                 dialog.show();
 
@@ -343,8 +355,14 @@ public class VideoPlayerActivity extends Activity {
         contentView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                videoPause();
-                contentView.seekTo(duration);
+                contentView.stopPlayback();
+                Media target = playList.get(currPosition);
+                if (target == null) return;
+                try {
+                    FileMaskUtils.encodeFile(target.getPath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 

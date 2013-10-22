@@ -17,9 +17,9 @@
         android:id="@+id/grid_item_text"
         android:layout_width="fill_parent"
         android:layout_height="@dimen/mc_sp_42"
+        android:gravity="center_horizontal"
         android:textSize="@dimen/mc_sp_16"
         android:maxLines="2"
-        android:textAlignment="center"
         android:ellipsize="end"
         android:text="人民教育出版社小学四年级.mp4">
     </TextView>

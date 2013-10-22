@@ -33,10 +33,6 @@ public class VideoListFragment extends VideoBaseFragment {
 
     private ListView mListView;
 
-    public VideoListFragment(String bathPath) {
-        super(bathPath);
-    }
-
     @Override
     public void init() {
         mAdapter =  new IconTextAdapter(getActivity(), playList);

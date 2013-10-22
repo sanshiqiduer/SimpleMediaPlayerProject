@@ -207,9 +207,20 @@ public class ImageFetcher extends ImageResizer {
 
     @TargetApi(Build.VERSION_CODES.FROYO)
     private boolean saveThumbnailToStream(String videoPath, OutputStream outputStream) {
-        Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(videoPath,
-                MediaStore.Images.Thumbnails.MINI_KIND);
-        return thumbnail != null && thumbnail.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+        boolean result;
+//        try {
+            //try to decode
+//            FileMaskUtils.decodeFile(videoPath);
+            Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(videoPath,
+                    MediaStore.Images.Thumbnails.MINI_KIND);
+            result = thumbnail != null && thumbnail.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+//            FileMaskUtils.encodeFile(videoPath);//to make file mask
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            result = false;
+//        }
+
+        return result;
     }
 
 }

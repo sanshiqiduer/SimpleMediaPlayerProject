@@ -1,11 +1,15 @@
 package com.ivan.simplemediaplayer.utils;
 
+import android.os.Environment;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -17,6 +21,7 @@ public class StorageUtils {
 
     public static List<String> getSystemFileDiskPath() {
         List<String> fileDiskList = new ArrayList<String>();
+
         try {
             Runtime runtime = Runtime.getRuntime();
             Process proc = runtime.exec("mount");
@@ -48,6 +53,21 @@ public class StorageUtils {
                     }
                 }
             }
+            //sort
+            Collections.sort(fileDiskList, new Comparator<String>() {
+                @Override
+                public int compare(String lhs, String rhs) {
+                    String sdName = Environment.getExternalStorageDirectory().getPath();
+                    if (sdName.equals(lhs)) {
+                        return -1;
+                    } else if (sdName.equals(rhs)) {
+                        return 1;
+                    } else {
+                        return lhs.compareTo(rhs);
+                    }
+                }
+            });
+
         } catch (Exception e) {
             e.printStackTrace();
             return fileDiskList;

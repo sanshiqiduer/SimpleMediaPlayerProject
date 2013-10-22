@@ -33,9 +33,6 @@ public abstract class VideoBaseFragment extends Fragment implements AdapterView.
 
     protected String path = "";
 
-    protected VideoBaseFragment(String bathPath) {
-        this.bathPath = bathPath;
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,6 +40,7 @@ public abstract class VideoBaseFragment extends Fragment implements AdapterView.
         Bundle args = getArguments();
         if (args != null) {
             path = args.getString(VideoPlayerActivity.PATH_KEY);
+            bathPath = args.getString(VideoPlayerActivity.BASE_PATH_KEY);
         }
         playList = VideoService.loadMedias(bathPath, path);
 
@@ -58,7 +56,7 @@ public abstract class VideoBaseFragment extends Fragment implements AdapterView.
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         Media media = playList.get(position);
-        callback.onMediaItemClick(media, position,bathPath, path);
+        callback.onMediaItemClick(media, position, bathPath, path);
     }
 
     @Override

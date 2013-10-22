@@ -9,13 +9,14 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 
 import com.ivan.simplemediaplayer.domain.Media;
@@ -38,6 +39,8 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
     //保存了用户使用的试图模式
     private SharedPreferences preferences;
 
+    private static int currentDropDownIndex = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,31 +53,67 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
         showGridView = preferences.getBoolean(SHOW_GRID, true);
 
         final ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle(R.string.home_title_text);
+        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
 
-        //add tabs
-        List<String> storagePathList = StorageUtils.getSystemFileDiskPath();
-        if (storagePathList != null && storagePathList.size() > 0) {
-            String tabNamePrefix = getResources().getString(R.string.ext_storage);
-            for (int i = 0; i < storagePathList.size(); i++) {
-                System.out.println(storagePathList.get(i));
+        final List<String> storagePathList = StorageUtils.getSystemFileDiskPath();
+        final String[] dropdownMenu = getDropdownMenu(storagePathList);
+        SpinnerAdapter mAdapter = new ArrayAdapter<String>(this, R.layout.spinner_dropdown_item, dropdownMenu);
+        ActionBar.OnNavigationListener navigationListener = new ActionBar.OnNavigationListener() {
+            @Override
+            public boolean onNavigationItemSelected(int position, long itemId) {
+                String basePath = storagePathList.get(position);
+                if (currentDropDownIndex != position) {
+                    getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                    changePage(basePath, "", false);
+                    currentDropDownIndex = position;
+                } else {
+                    if (getSupportFragmentManager().findFragmentByTag(GRID_FRAGMENT_TAG) == null) {
+                        changePage(basePath, "", false);
+                    }
+                }
+                return true;
             }
+        };
+
+        actionBar.setListNavigationCallbacks(mAdapter, navigationListener);
+        if (savedInstanceState != null) {
+            currentDropDownIndex = savedInstanceState.getInt("index");
         }
 
-
-        if (getSupportFragmentManager().findFragmentByTag(GRID_FRAGMENT_TAG) == null) {
-            toHome();
-        }
+        actionBar.setSelectedNavigationItem(currentDropDownIndex);
 
         toggleGridView(showGridView);//初始化的界面
 
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("index", currentDropDownIndex);
+    }
+
+    private String[] getDropdownMenu(List<String> storagePathList) {
+        String sdName = Environment.getExternalStorageDirectory().getPath();
+        String[] dropdownMenu = null;
+        if (storagePathList != null && storagePathList.size() > 0) {
+            dropdownMenu = new String[storagePathList.size()];
+            String buildIn = getResources().getString(R.string.build_in_storage);
+            String extSdcard = getResources().getString(R.string.ext_storage);
+            for (int i = 0; i < storagePathList.size(); i++) {
+                String path = storagePathList.get(i);
+                if (sdName.equals(path)) {
+                    dropdownMenu[i] = buildIn;
+                } else {
+                    dropdownMenu[i] = extSdcard + "(" + path + ")";
+                }
+            }
+        }
+
+        return dropdownMenu;
+    }
+
     private void toHome() {
-        //clear back stack
-        getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        String basePath = Environment.getExternalStorageDirectory().getPath();
-        changePage(basePath, "", false);//to home
+        getSupportActionBar().setSelectedNavigationItem(0);
     }
 
     private void saveShowMode(SharedPreferences preferences, boolean showGridView) {
@@ -97,6 +136,7 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
     public void onMediaItemClick(Media media, int position, String basePath, String path) {
         if (media.getMediaType() == Media.MEDIA_TYPE_VIDEO) {
             Intent playIntent = new Intent(this, VideoPlayerActivity.class);
+            playIntent.putExtra(VideoPlayerActivity.BASE_PATH_KEY, basePath);
             playIntent.putExtra(VideoPlayerActivity.PATH_KEY, path);
             playIntent.putExtra(VideoPlayerActivity.POSITION_KEY, position);
             startActivity(playIntent);
@@ -130,10 +170,11 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
 
-        Fragment gridFragment = new VideoGridFragment(basePath);
-        Fragment listFragment = new VideoListFragment(basePath);
+        Fragment gridFragment = new VideoGridFragment();
+        Fragment listFragment = new VideoListFragment();
 
         Bundle args = new Bundle();
+        args.putString(VideoPlayerActivity.BASE_PATH_KEY, basePath);
         args.putString(VideoPlayerActivity.PATH_KEY, newPath);
 
         gridFragment.setArguments(args);
@@ -180,22 +221,4 @@ public class MainActivity extends ActionBarActivity implements OnMediaItemClickL
 
     }
 
-    public static class TabListener<T extends VideoBaseFragment> implements ActionBar.TabListener{
-
-
-        @Override
-        public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-
-        }
-
-        @Override
-        public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-
-        }
-
-        @Override
-        public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-
-        }
-    }
 }

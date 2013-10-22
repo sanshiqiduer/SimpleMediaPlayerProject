@@ -1775,7 +1775,6 @@ com.ivan.simplemediaplayer.MainActivity:
     public static final java.lang.String SHOW_GRID
     private static final java.lang.String GRID_FRAGMENT_TAG
     private static final java.lang.String LIST_FRAGMENT_TAG
-com.ivan.simplemediaplayer.MainActivity$TabListener
 com.ivan.simplemediaplayer.VideoGridFragment:
     private static final java.lang.String IMAGE_CACHE_DIR
 com.ivan.simplemediaplayer.VideoPlayerActivity:

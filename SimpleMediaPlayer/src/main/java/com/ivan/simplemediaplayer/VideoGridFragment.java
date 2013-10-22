@@ -48,10 +48,6 @@ public class VideoGridFragment extends VideoBaseFragment {
 
     private GridItemAnalyzer gridItemAnalyzer;
 
-    protected VideoGridFragment(String bathPath) {
-        super(bathPath);
-    }
-
     @Override
     public void init() {
         mAdapter = new GridAdapter(getActivity(), playList);
