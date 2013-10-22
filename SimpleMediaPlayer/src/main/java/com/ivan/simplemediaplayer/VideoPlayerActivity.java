@@ -356,13 +356,7 @@ public class VideoPlayerActivity extends Activity {
             @Override
             public void onCompletion(MediaPlayer mp) {
                 contentView.stopPlayback();
-                Media target = playList.get(currPosition);
-                if (target == null) return;
-                try {
-                    FileMaskUtils.encodeFile(target.getPath());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                encodeVideo();
             }
         });
 
@@ -378,6 +372,16 @@ public class VideoPlayerActivity extends Activity {
         });
     }
 
+    private void encodeVideo() {
+        Media target = playList.get(currPosition);
+        if (target == null) return;
+        try {
+            FileMaskUtils.encodeFile(target.getPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void updateVideoCtrlBarAutoVisible() {
         View videoCtrlBar = findViewById(R.id.els_vedio_ctrl_wraper);// 视频操作栏
         if (contentView.isPlaying()) {
@@ -391,6 +395,11 @@ public class VideoPlayerActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        encodeVideo();
+    }
 
     private void videoPause() {
         playBtn.setImageResource(R.drawable.play_btn);

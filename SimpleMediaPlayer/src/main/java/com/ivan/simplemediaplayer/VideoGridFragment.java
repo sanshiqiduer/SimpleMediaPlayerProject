@@ -59,11 +59,13 @@ public class VideoGridFragment extends VideoBaseFragment {
         columns = iconConfig.second;
 
         ImageCache.ImageCacheParams cacheParams = new ImageCache.ImageCacheParams(getActivity(), IMAGE_CACHE_DIR);
+        cacheParams.imageSize = thumbImageSize;
 
-        cacheParams.setMemCacheSizePercent(0.25f); // Set memory cache to 25% of app memory
+        cacheParams.setMemCacheSizePercent(0.5f);
+
         mImageFetcher = new ImageFetcher(getActivity(), thumbImageSize);
 
-        mImageFetcher.setLoadingImage(R.drawable.empty_photo);
+        mImageFetcher.setLoadingImage(mImageFetcher.processBitmap(R.drawable.empty_photo));
         mImageFetcher.addImageCache(getActivity().getSupportFragmentManager(), cacheParams);
     }
 

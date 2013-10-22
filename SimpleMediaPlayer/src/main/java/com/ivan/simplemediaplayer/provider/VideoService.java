@@ -48,7 +48,7 @@ public class VideoService {
             dirs = dir.listFiles(new FileFilter() {
                 @Override
                 public boolean accept(File pathname) {
-                    return pathname.isDirectory();
+                    return pathname.isDirectory() && !pathname.isHidden();
                 }
             });
         }
@@ -56,7 +56,7 @@ public class VideoService {
         File[] mp4Files = dir.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
-                if (pathname.isDirectory()) {
+                if (pathname.isDirectory() || pathname.isHidden()) {
                     return false;
                 }
                 String fileName = pathname.getName();

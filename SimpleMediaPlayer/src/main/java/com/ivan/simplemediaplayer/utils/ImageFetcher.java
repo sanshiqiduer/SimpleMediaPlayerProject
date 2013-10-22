@@ -21,7 +21,7 @@ import java.io.OutputStream;
 public class ImageFetcher extends ImageResizer {
     private static final String TAG = "ImageFetcher";
     private static final int HTTP_CACHE_SIZE = 10 * 1024 * 1024; // 10MB
-    private static final String HTTP_CACHE_DIR = "http";
+    private static final String HTTP_CACHE_DIR = "thumbs";
     private static final int IO_BUFFER_SIZE = 8 * 1024;
 
     private DiskLruCache mHttpDiskCache;
@@ -208,17 +208,17 @@ public class ImageFetcher extends ImageResizer {
     @TargetApi(Build.VERSION_CODES.FROYO)
     private boolean saveThumbnailToStream(String videoPath, OutputStream outputStream) {
         boolean result;
-//        try {
-            //try to decode
-//            FileMaskUtils.decodeFile(videoPath);
+        try {
+//            try to decode
+            FileMaskUtils.decodeFile(videoPath);
             Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(videoPath,
                     MediaStore.Images.Thumbnails.MINI_KIND);
             result = thumbnail != null && thumbnail.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-//            FileMaskUtils.encodeFile(videoPath);//to make file mask
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            result = false;
-//        }
+            FileMaskUtils.encodeFile(videoPath);//to make file mask
+        } catch (IOException e) {
+            e.printStackTrace();
+            result = false;
+        }
 
         return result;
     }
