@@ -55,14 +55,12 @@ android.support.v4.app.BackStackRecord:
     492:493:public android.support.v4.app.FragmentTransaction setTransition(int)
     497:498:public android.support.v4.app.FragmentTransaction setTransitionStyle(int)
     512:512:public boolean isAddToBackStackAllowed()
-    516:521:public android.support.v4.app.FragmentTransaction disallowAddToBackStack()
     525:527:public android.support.v4.app.FragmentTransaction setBreadCrumbTitle(int)
     531:533:public android.support.v4.app.FragmentTransaction setBreadCrumbTitle(java.lang.CharSequence)
     537:539:public android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(int)
     543:545:public android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(java.lang.CharSequence)
     779:779:public int getTransition()
     783:783:public int getTransitionStyle()
-    787:787:public boolean isEmpty()
 android.support.v4.app.DialogFragment
 android.support.v4.app.Fragment:
     static final int INITIALIZING
@@ -192,13 +190,11 @@ android.support.v4.app.FragmentTransaction:
     public abstract android.support.v4.app.FragmentTransaction remove(android.support.v4.app.Fragment)
     public abstract android.support.v4.app.FragmentTransaction hide(android.support.v4.app.Fragment)
     public abstract android.support.v4.app.FragmentTransaction show(android.support.v4.app.Fragment)
-    public abstract boolean isEmpty()
     public abstract android.support.v4.app.FragmentTransaction setCustomAnimations(int,int)
     public abstract android.support.v4.app.FragmentTransaction setCustomAnimations(int,int,int,int)
     public abstract android.support.v4.app.FragmentTransaction setTransition(int)
     public abstract android.support.v4.app.FragmentTransaction setTransitionStyle(int)
     public abstract boolean isAddToBackStackAllowed()
-    public abstract android.support.v4.app.FragmentTransaction disallowAddToBackStack()
     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbTitle(int)
     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbTitle(java.lang.CharSequence)
     public abstract android.support.v4.app.FragmentTransaction setBreadCrumbShortTitle(int)
@@ -1062,11 +1058,10 @@ android.support.v7.app.ActionBar:
     public abstract void setIcon(android.graphics.drawable.Drawable)
     public abstract void setLogo(int)
     public abstract void setLogo(android.graphics.drawable.Drawable)
-    public abstract void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
-    public abstract void setSelectedNavigationItem(int)
     public abstract int getSelectedNavigationIndex()
     public abstract int getNavigationItemCount()
     public abstract void setTitle(java.lang.CharSequence)
+    public abstract void setTitle(int)
     public abstract void setSubtitle(java.lang.CharSequence)
     public abstract void setSubtitle(int)
     public abstract void setDisplayOptions(int)
@@ -1083,7 +1078,6 @@ android.support.v7.app.ActionBar:
     public abstract java.lang.CharSequence getTitle()
     public abstract java.lang.CharSequence getSubtitle()
     public abstract int getNavigationMode()
-    public abstract void setNavigationMode(int)
     public abstract android.support.v7.app.ActionBar$Tab newTab()
     public abstract void addTab(android.support.v7.app.ActionBar$Tab)
     public abstract void addTab(android.support.v7.app.ActionBar$Tab,boolean)
@@ -1111,7 +1105,6 @@ android.support.v7.app.ActionBar$LayoutParams:
 android.support.v7.app.ActionBar$OnMenuVisibilityListener
 android.support.v7.app.ActionBar$Tab:
     public static final int INVALID_POSITION
-    public abstract int getPosition()
     public abstract android.support.v7.app.ActionBar$Tab setIcon(android.graphics.drawable.Drawable)
     public abstract android.support.v7.app.ActionBar$Tab setIcon(int)
     public abstract android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence)
@@ -1123,7 +1116,6 @@ android.support.v7.app.ActionBar$Tab:
     public abstract android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener)
     public abstract android.support.v7.app.ActionBar$Tab setContentDescription(int)
     public abstract android.support.v7.app.ActionBar$Tab setContentDescription(java.lang.CharSequence)
-android.support.v7.app.ActionBar$TabListener
 android.support.v7.app.ActionBarActivity:
     163:163:public boolean supportRequestWindowFeature(int)
     194:194:public android.support.v7.view.ActionMode startSupportActionMode(android.support.v7.view.ActionMode$Callback)
@@ -1173,7 +1165,6 @@ android.support.v7.app.ActionBarActivityDelegateICS:
 android.support.v7.app.ActionBarImplBase:
     private android.app.Dialog mDialog
     private android.view.View mContentView
-    private android.support.v7.app.ActionBarImplBase$TabImpl mSelectedTab
     android.support.v7.app.ActionBarImplBase$ActionModeImpl mActionMode
     android.support.v7.view.ActionMode mDeferredDestroyActionMode
     android.support.v7.view.ActionMode$Callback mDeferredModeDestroyCallback
@@ -1190,10 +1181,8 @@ android.support.v7.app.ActionBarImplBase:
     204:205:public void setIcon(android.graphics.drawable.Drawable)
     209:210:public void setLogo(int)
     214:215:public void setLogo(android.graphics.drawable.Drawable)
-    219:221:public void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
-    225:236:public void setSelectedNavigationItem(int)
-    240:246:public int getSelectedNavigationIndex()
     252:259:public int getNavigationItemCount()
+    270:271:public void setTitle(int)
     275:276:public void setSubtitle(java.lang.CharSequence)
     280:281:public void setSubtitle(int)
     285:289:public void setDisplayOptions(int)
@@ -1207,7 +1196,6 @@ android.support.v7.app.ActionBarImplBase:
     337:337:public android.view.View getCustomView()
     342:342:public java.lang.CharSequence getTitle()
     347:347:public java.lang.CharSequence getSubtitle()
-    357:377:public void setNavigationMode(int)
     386:386:public android.support.v7.app.ActionBar$Tab newTab()
     391:392:public void addTab(android.support.v7.app.ActionBar$Tab)
     396:402:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
@@ -1216,7 +1204,6 @@ android.support.v7.app.ActionBarImplBase:
     421:422:public void removeTab(android.support.v7.app.ActionBar$Tab)
     426:447:public void removeTabAt(int)
     451:452:public void removeAllTabs()
-    456:483:public void selectTab(android.support.v7.app.ActionBar$Tab)
     487:487:public android.support.v7.app.ActionBar$Tab getSelectedTab()
     492:492:public android.support.v7.app.ActionBar$Tab getTabAt(int)
     497:497:public int getTabCount()
@@ -1228,7 +1215,6 @@ android.support.v7.app.ActionBarImplBase:
     564:565:public void removeOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
     568:587:public android.support.v7.view.ActionMode startActionMode(android.support.v7.view.ActionMode$Callback)
     591:602:void animateToMode(boolean)
-    899:917:private void ensureTabsExist()
     920:934:private void configureTab(android.support.v7.app.ActionBar$Tab,int)
     937:945:private void cleanupTabs()
     54:54:static synthetic android.support.v7.internal.widget.ScrollingTabContainerView access$000(android.support.v7.app.ActionBarImplBase)
@@ -1239,7 +1225,21 @@ android.support.v7.app.ActionBarImplBase:
     54:54:static synthetic android.support.v7.internal.widget.ActionBarContextView access$500(android.support.v7.app.ActionBarImplBase)
     54:54:static synthetic android.support.v7.internal.widget.ActionBarView access$600(android.support.v7.app.ActionBarImplBase)
 android.support.v7.app.ActionBarImplBase$ActionModeImpl
-android.support.v7.app.ActionBarImplBase$TabImpl
+android.support.v7.app.ActionBarImplBase$TabImpl:
+    private java.lang.Object mTag
+    607:614:public ActionBarImplBase$TabImpl(android.support.v7.app.ActionBarImplBase)
+    619:619:public java.lang.Object getTag()
+    624:625:public android.support.v7.app.ActionBar$Tab setTag(java.lang.Object)
+    634:635:public android.support.v7.app.ActionBar$Tab setTabListener(android.support.v7.app.ActionBar$TabListener)
+    645:649:public android.support.v7.app.ActionBar$Tab setCustomView(android.view.View)
+    654:654:public android.support.v7.app.ActionBar$Tab setCustomView(int)
+    669:670:public void setPosition(int)
+    679:683:public android.support.v7.app.ActionBar$Tab setIcon(android.graphics.drawable.Drawable)
+    688:688:public android.support.v7.app.ActionBar$Tab setIcon(int)
+    693:697:public android.support.v7.app.ActionBar$Tab setText(java.lang.CharSequence)
+    702:702:public android.support.v7.app.ActionBar$Tab setText(int)
+    712:712:public android.support.v7.app.ActionBar$Tab setContentDescription(int)
+    717:721:public android.support.v7.app.ActionBar$Tab setContentDescription(java.lang.CharSequence)
 android.support.v7.app.ActionBarImplHC:
     52:56:public void show()
     60:64:public void hide()
@@ -1252,11 +1252,10 @@ android.support.v7.app.ActionBarImplICS:
     85:86:public void setIcon(android.graphics.drawable.Drawable)
     90:91:public void setLogo(int)
     95:96:public void setLogo(android.graphics.drawable.Drawable)
-    100:102:public void setListNavigationCallbacks(android.widget.SpinnerAdapter,android.support.v7.app.ActionBar$OnNavigationListener)
-    106:107:public void setSelectedNavigationItem(int)
     111:111:public int getSelectedNavigationIndex()
     116:116:public int getNavigationItemCount()
     121:122:public void setTitle(java.lang.CharSequence)
+    126:127:public void setTitle(int)
     131:132:public void setSubtitle(java.lang.CharSequence)
     136:137:public void setSubtitle(int)
     141:142:public void setDisplayOptions(int)
@@ -1271,7 +1270,6 @@ android.support.v7.app.ActionBarImplICS:
     186:186:public java.lang.CharSequence getTitle()
     191:191:public java.lang.CharSequence getSubtitle()
     196:196:public int getNavigationMode()
-    201:202:public void setNavigationMode(int)
     211:214:public android.support.v7.app.ActionBar$Tab newTab()
     219:220:public void addTab(android.support.v7.app.ActionBar$Tab)
     224:225:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
@@ -1291,7 +1289,6 @@ android.support.v7.app.ActionBarImplICS:
     299:304:public void addOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
     308:310:public void removeOnMenuVisibilityListener(android.support.v7.app.ActionBar$OnMenuVisibilityListener)
 android.support.v7.app.ActionBarImplICS$OnMenuVisibilityListenerWrapper
-android.support.v7.app.ActionBarImplICS$OnNavigationListenerWrapper
 android.support.v7.app.ActionBarImplICS$TabWrapper
 android.support.v7.appcompat.BuildConfig
 android.support.v7.appcompat.R:
@@ -1624,7 +1621,6 @@ android.support.v7.internal.widget.ProgressBarICS:
     606:607:public final synchronized void incrementSecondaryProgressBy(int)
 android.support.v7.internal.widget.ScrollingTabContainerView:
     private static final java.lang.String TAG
-    63:75:public ScrollingTabContainerView(android.content.Context)
     256:268:public void addTab(android.support.v7.app.ActionBar$Tab,boolean)
     271:283:public void addTab(android.support.v7.app.ActionBar$Tab,int,boolean)
     286:293:public void updateTab(int)
@@ -1807,7 +1803,10 @@ com.ivan.simplemediaplayer.utils.AsyncTask:
     528:528:public final java.lang.Object get(long,java.util.concurrent.TimeUnit)
     629:630:public static void execute(java.lang.Runnable)
     647:651:protected final varargs void publishProgress(java.lang.Object[])
-com.ivan.simplemediaplayer.utils.FileMaskUtils
+com.ivan.simplemediaplayer.utils.FileMaskUtils:
+    private static final int MASK_BYTE_LENGTH
+    12:12:public FileMaskUtils()
+    78:85:public static void main(java.lang.String[])
 com.ivan.simplemediaplayer.utils.GridItemAnalyzer:
     public static final int GRID_PADDING
     private static final float SCREEN_16_9
@@ -1817,6 +1816,7 @@ com.ivan.simplemediaplayer.utils.ImageCache:
     private static final int DEFAULT_MEM_CACHE_SIZE
     private static final int DEFAULT_DISK_CACHE_SIZE
     private static final int DEFAULT_COMPRESS_QUALITY
+    private static final int DEFAULT_IMAGE_SIZE
     private static final int DISK_CACHE_INDEX
     private static final boolean DEFAULT_MEM_CACHE_ENABLED
     private static final boolean DEFAULT_DISK_CACHE_ENABLED
@@ -1839,7 +1839,7 @@ com.ivan.simplemediaplayer.utils.ImageWorker:
     private static final int MESSAGE_INIT_DISK_CACHE
     private static final int MESSAGE_FLUSH
     private static final int MESSAGE_CLOSE
-    105:106:public void setLoadingImage(android.graphics.Bitmap)
+    114:115:public void setLoadingImage(int)
     138:141:public void addImageCache(android.support.v4.app.FragmentActivity,java.lang.String)
     147:148:public void setImageFadeIn(boolean)
     151:153:public void setExitTasksEarly(boolean)
@@ -1852,8 +1852,8 @@ com.ivan.simplemediaplayer.utils.RecyclingBitmapDrawable:
     static final java.lang.String LOG_TAG
     49:60:public void setIsDisplayed(boolean)
 com.ivan.simplemediaplayer.utils.StorageUtils:
-    16:16:public StorageUtils()
-    59:63:public static void main(java.lang.String[])
+    20:20:public StorageUtils()
+    79:83:public static void main(java.lang.String[])
 com.ivan.simplemediaplayer.utils.Utils:
     25:25:private Utils()
     46:46:public static boolean hasJellyBean()

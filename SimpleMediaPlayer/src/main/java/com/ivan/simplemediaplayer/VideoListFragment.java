@@ -1,24 +1,18 @@
 package com.ivan.simplemediaplayer;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.ListFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.ivan.simplemediaplayer.domain.Media;
-import com.ivan.simplemediaplayer.provider.VideoService;
 import com.padplay.android.R;
 
 import java.util.List;

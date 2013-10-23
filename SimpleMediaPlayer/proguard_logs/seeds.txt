@@ -1020,6 +1020,7 @@ com.padplay.android.R$color: int lavender
 com.padplay.android.R$color: int lavenderblush
 com.padplay.android.R$color: int lawngreen
 com.padplay.android.R$color: int lemonchiffon
+com.padplay.android.R$color: int light_gray
 com.padplay.android.R$color: int lightblue
 com.padplay.android.R$color: int lightcoral
 com.padplay.android.R$color: int lightcyan
@@ -1458,6 +1459,7 @@ com.padplay.android.R$layout: int empty_view
 com.padplay.android.R$layout: int grid_item
 com.padplay.android.R$layout: int list_item_icon_text
 com.padplay.android.R$layout: int main
+com.padplay.android.R$layout: int spinner_dropdown_item
 com.padplay.android.R$layout: int support_simple_spinner_dropdown_item
 com.padplay.android.R$layout: int video_grid_view
 com.padplay.android.R$layout: int video_list_view
@@ -1480,6 +1482,7 @@ com.padplay.android.R$string: int abc_shareactionprovider_share_with_application
 com.padplay.android.R$string: int action_settings
 com.padplay.android.R$string: int app_download_not_find
 com.padplay.android.R$string: int app_name
+com.padplay.android.R$string: int build_in_storage
 com.padplay.android.R$string: int can_not_play_next
 com.padplay.android.R$string: int can_not_play_pre
 com.padplay.android.R$string: int dialog_title
@@ -1488,7 +1491,6 @@ com.padplay.android.R$string: int ext_storage
 com.padplay.android.R$string: int home_title_text
 com.padplay.android.R$string: int no_network_connection_toast
 com.padplay.android.R$string: int positive_text
-com.padplay.android.R$string: int sdcard
 com.padplay.android.R$string: int title_activity_main
 com.padplay.android.R$string: int title_activity_video_list_activty
 com.padplay.android.R$string: int title_activity_video_player
@@ -1500,6 +1502,7 @@ com.padplay.android.R$string: int video_play_exception
 com.padplay.android.R$string: int video_play_pause
 com.padplay.android.R$style: int AppBaseTheme
 com.padplay.android.R$style: int AppTheme
+com.padplay.android.R$style: int CustomSpinnerStyle
 com.padplay.android.R$style: int TextAppearance_AppCompat_Base_CompactMenu_Dialog
 com.padplay.android.R$style: int TextAppearance_AppCompat_Base_SearchResult
 com.padplay.android.R$style: int TextAppearance_AppCompat_Base_SearchResult_Subtitle
